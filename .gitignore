@@ -40,3 +40,6 @@ next-env.d.ts
 
 # Claude Code local settings (may contain sensitive data)
 .claude/
+
+# Local reference files (may contain personal data)
+/references/

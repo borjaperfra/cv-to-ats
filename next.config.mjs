@@ -33,9 +33,10 @@ const nextConfig = {
             value: [
               "default-src 'self'",
               "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
-              "style-src 'self' 'unsafe-inline'",
+              // Google Fonts CSS is loaded via <link>; font files come from gstatic
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "img-src 'self' data:",
-              "font-src 'self'",
+              "font-src 'self' https://fonts.gstatic.com",
               "connect-src 'self'",
               "frame-ancestors 'none'",
             ].join('; '),
