@@ -6,7 +6,7 @@ interface Props {
 
 function SectionHeader({ title }: { title: string }) {
   return (
-    <div className="mt-5 mb-1.5 border-b border-black pb-0.5">
+    <div className="mt-5 mb-2 border-b border-black pb-1.5">
       <p className="font-serif font-bold text-[11pt] uppercase tracking-wide">{title}</p>
     </div>
   )

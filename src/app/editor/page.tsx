@@ -259,21 +259,32 @@ export default function EditorPage() {
       if (imgH <= pdfH) {
         pdf.addImage(canvas.toDataURL('image/jpeg', 1.0), 'JPEG', 0, 0, pdfW, imgH)
       } else {
-        // Multi-page: slice canvas into A4 chunks
-        const pageHpx = Math.floor((pdfH * canvas.width) / pdfW)
+        // Multi-page: slice canvas into A4 chunks with vertical breathing room at breaks
+        // breakMarginMm adds whitespace at top/bottom of each page break so text never hits the edge
+        const breakMarginMm = 10
+        const fullPageHpx = Math.round((pdfH * canvas.width) / pdfW)
+        const marginPx = Math.round((breakMarginMm / pdfH) * fullPageHpx)
+        const usableHpx = fullPageHpx - 2 * marginPx // content area per page
+
         let y = 0
+        let pageNum = 0
         while (y < canvas.height) {
-          const sliceH = Math.min(pageHpx, canvas.height - y)
+          const sliceH = Math.min(usableHpx, canvas.height - y)
+
+          // Create a full A4-height canvas, draw content starting at marginPx from top
           const pg = document.createElement('canvas')
           pg.width = canvas.width
-          pg.height = sliceH
+          pg.height = fullPageHpx
           const ctx = pg.getContext('2d')!
           ctx.fillStyle = '#ffffff'
           ctx.fillRect(0, 0, pg.width, pg.height)
-          ctx.drawImage(canvas, 0, y, canvas.width, sliceH, 0, 0, canvas.width, sliceH)
-          if (y > 0) pdf.addPage()
-          pdf.addImage(pg.toDataURL('image/jpeg', 1.0), 'JPEG', 0, 0, pdfW, (sliceH * pdfW) / canvas.width)
-          y += pageHpx
+          ctx.drawImage(canvas, 0, y, canvas.width, sliceH, 0, marginPx, canvas.width, sliceH)
+
+          if (pageNum > 0) pdf.addPage()
+          pdf.addImage(pg.toDataURL('image/jpeg', 1.0), 'JPEG', 0, 0, pdfW, pdfH)
+
+          y += usableHpx
+          pageNum++
         }
       }
 
