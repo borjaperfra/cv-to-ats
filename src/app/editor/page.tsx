@@ -75,6 +75,7 @@ export default function EditorPage() {
   const [cv, setCv] = useState<CVData>(EMPTY_CV)
   const [showPreview, setShowPreview] = useState(false)
   const [exportingDocx, setExportingDocx] = useState(false)
+  const [exportingPdf, setExportingPdf] = useState(false)
 
   // ─ Detected CV from previous analysis ─
   const [detectedCvText, setDetectedCvText] = useState<string | null>(null)
@@ -195,9 +196,64 @@ export default function EditorPage() {
   const removeIdioma = (id: string) => setCv(prev => ({ ...prev, idiomas: prev.idiomas.filter(l => l.id !== id) }))
 
   // ─ Exports ─
-  const handlePdfExport = () => {
-    setShowPreview(true)
-    setTimeout(() => window.print(), 300)
+  const handlePdfExport = async () => {
+    setExportingPdf(true)
+    try {
+      const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+        import('html2canvas'),
+        import('jspdf'),
+      ])
+
+      const templateEl = document.getElementById('harvard-template')
+      if (!templateEl) return
+
+      // On mobile the desktop preview wrapper is hidden — temporarily reveal it
+      const hiddenAncestor = templateEl.parentElement?.closest('[class*="hidden"]') as HTMLElement | null
+      if (hiddenAncestor) {
+        hiddenAncestor.style.display = 'block'
+        await new Promise(r => setTimeout(r, 60))
+      }
+
+      const canvas = await html2canvas(templateEl, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+      })
+
+      if (hiddenAncestor) hiddenAncestor.style.display = ''
+
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+      const pdfW = pdf.internal.pageSize.getWidth()
+      const pdfH = pdf.internal.pageSize.getHeight()
+      const imgH = (canvas.height * pdfW) / canvas.width
+
+      if (imgH <= pdfH) {
+        pdf.addImage(canvas.toDataURL('image/jpeg', 1.0), 'JPEG', 0, 0, pdfW, imgH)
+      } else {
+        // Multi-page: slice canvas into A4 chunks
+        const pageHpx = Math.floor((pdfH * canvas.width) / pdfW)
+        let y = 0
+        while (y < canvas.height) {
+          const sliceH = Math.min(pageHpx, canvas.height - y)
+          const pg = document.createElement('canvas')
+          pg.width = canvas.width
+          pg.height = sliceH
+          const ctx = pg.getContext('2d')!
+          ctx.fillStyle = '#ffffff'
+          ctx.fillRect(0, 0, pg.width, pg.height)
+          ctx.drawImage(canvas, 0, y, canvas.width, sliceH, 0, 0, canvas.width, sliceH)
+          if (y > 0) pdf.addPage()
+          pdf.addImage(pg.toDataURL('image/jpeg', 1.0), 'JPEG', 0, 0, pdfW, (sliceH * pdfW) / canvas.width)
+          y += pageHpx
+        }
+      }
+
+      const nombre = cv.personalInfo.nombre || 'cv'
+      pdf.save(`${nombre.replace(/\s+/g, '_').toLowerCase()}_harvard.pdf`)
+    } finally {
+      setExportingPdf(false)
+    }
   }
 
   const handleDocxExport = async () => {
@@ -212,21 +268,6 @@ export default function EditorPage() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#f0ede8' }}>
-
-      {/* Print styles */}
-      <style jsx global>{`
-        @media print {
-          body * { visibility: hidden !important; }
-          #harvard-template, #harvard-template * { visibility: visible !important; }
-          #harvard-template {
-            position: fixed !important;
-            top: 0 !important; left: 0 !important;
-            width: 210mm !important;
-            padding: 25.4mm !important;
-            box-shadow: none !important;
-          }
-        }
-      `}</style>
 
       <Header />
 
@@ -382,13 +423,26 @@ export default function EditorPage() {
             </button>
             <button
               onClick={handlePdfExport}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-sans font-[900] text-xs uppercase tracking-wider border-2 transition-all duration-300"
+              disabled={exportingPdf}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-sans font-[900] text-xs uppercase tracking-wider border-2 transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed"
               style={{ borderColor: '#092c64', color: '#092c64' }}
             >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-              </svg>
-              Imprimir / PDF
+              {exportingPdf ? (
+                <>
+                  <svg className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                  </svg>
+                  Generando PDF...
+                </>
+              ) : (
+                <>
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Descargar PDF
+                </>
+              )}
             </button>
             <button
               onClick={() => exportToMarkdown(cv)}
