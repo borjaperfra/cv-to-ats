@@ -60,19 +60,22 @@ export default function ScoreHeader({
     return () => cancelAnimationFrame(raf)
   }, [score])
 
-  // Confetti when score > 80
+  // Confetti when score > 80 — fires just after count-up finishes (1200ms)
+  // so the number reaching its peak is the visual cue for the celebration.
+  // Two simultaneous bursts from left + right make it hard to miss.
   useEffect(() => {
     if (score <= 80) return
-    const t = setTimeout(() => {
-      import('canvas-confetti').then(({ default: confetti }) => {
-        confetti({
-          particleCount: 120,
-          spread: 75,
-          origin: { y: 0.55 },
-          colors: ['#0DA1A4', '#01FFC6', '#092c64', '#ffffff', '#f59e0b'],
-        })
-      })
-    }, 800)
+    const t = setTimeout(async () => {
+      const { default: confetti } = await import('canvas-confetti')
+      const base = {
+        particleCount: 90,
+        spread: 65,
+        startVelocity: 45,
+        colors: ['#0DA1A4', '#01FFC6', '#092c64', '#ffffff', '#f59e0b'],
+      }
+      confetti({ ...base, origin: { x: 0.25, y: 0.65 } })
+      confetti({ ...base, origin: { x: 0.75, y: 0.65 } })
+    }, 1300)
     return () => clearTimeout(t)
   }, [score])
 
