@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import confetti from 'canvas-confetti'
 import type { MatchResult } from '@/types/match'
 import { getLang } from '@/components/LanguageSelector'
 import Header from '@/components/Header'
@@ -45,10 +46,9 @@ export default function MatchResultsPage() {
 
   useEffect(() => {
     if (!result || result.matchScore <= 80) return
-    const t = setTimeout(async () => {
-      const { default: confetti } = await import('canvas-confetti')
-      const base = { particleCount: 90, spread: 65, startVelocity: 45,
-        colors: ['#0DA1A4', '#01FFC6', '#092c64', '#ffffff', '#f59e0b'] }
+    const base = { particleCount: 90, spread: 65, startVelocity: 45,
+      colors: ['#0DA1A4', '#01FFC6', '#092c64', '#ffffff', '#f59e0b'] }
+    const t = setTimeout(() => {
       confetti({ ...base, origin: { x: 0.25, y: 0.65 } })
       confetti({ ...base, origin: { x: 0.75, y: 0.65 } })
     }, 1300)
