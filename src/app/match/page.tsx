@@ -338,6 +338,16 @@ export default function MatchPage() {
           </button>
         )}
 
+        {/* Batch mode link */}
+        <div className="flex items-center justify-center">
+          <button
+            onClick={() => router.push('/match/batch')}
+            className="font-sans text-sm text-gray-400 hover:text-teal transition-colors duration-200"
+          >
+            ¿Tienes varias ofertas? <span className="font-[700] underline underline-offset-2">Compara todas a la vez →</span>
+          </button>
+        </div>
+
         <div className="flex items-center justify-center gap-6 text-xs text-gray-400 font-sans">
           <div className="flex items-center gap-1.5">
             <svg className="w-3.5 h-3.5 text-teal" fill="currentColor" viewBox="0 0 20 20">
