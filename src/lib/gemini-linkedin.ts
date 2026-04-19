@@ -61,6 +61,7 @@ Required fields:
 
 IMPORTANT:
 - Only flag real issues found in the provided text. Do not invent problems.
+- When flagging an issue, always include a direct quote (in quotes) from the profile text that supports the finding. Never make generic recommendations without citing specific text from the profile.
 - The overallScore must be based on objective criteria.
 - ALL generated text must be in the specified language.
 
@@ -97,8 +98,24 @@ ${profileText}
 ---`
 }
 
+function deduplicateProfileText(text: string): string {
+  const paragraphs = text.split(/\n{2,}/)
+  const seen = new Set<string>()
+  return paragraphs
+    .map(p => p.trim())
+    .filter(p => {
+      if (!p) return false
+      const key = p.toLowerCase().replace(/\s+/g, ' ')
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+    .join('\n\n')
+}
+
 export async function analyzeLinkedIn(profileText: string, lang: 'es' | 'en' = 'es'): Promise<LinkedInResult> {
-  const prompt = buildLinkedInPrompt(profileText, lang)
+  const cleanedText = deduplicateProfileText(profileText)
+  const prompt = buildLinkedInPrompt(cleanedText, lang)
   const result = await model.generateContent(prompt)
   const text = result.response.text()
 

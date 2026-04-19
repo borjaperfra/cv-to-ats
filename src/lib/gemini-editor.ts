@@ -97,6 +97,7 @@ STRICT RULES:
 - DO improve experience "bullets" to be more quantified, action-verb-led and keyword-rich.
 - DO add missing skills from the recommendations to the "habilidades" array (only real skills, not soft skills).
 - DO keep the original language of the CV.
+- NEVER concatenate adjacent string fields. Always preserve spaces and separators between empresa, cargo, fechaInicio and fechaFin.
 - Return ONLY valid JSON with the exact same structure as the input — no markdown, no extra text.
 
 CURRENT CV (JSON):

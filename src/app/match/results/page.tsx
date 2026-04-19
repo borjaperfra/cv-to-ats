@@ -244,6 +244,9 @@ export default function MatchResultsPage() {
                 placeholder="Pega el texto de la nueva oferta o una URL (https://...)"
                 rows={newJdIsUrl ? 2 : 4}
                 disabled={analyzing}
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck={false}
                 className="w-full font-sans text-sm rounded-xl border px-4 py-3 resize-none focus:outline-none focus:ring-2 focus:ring-teal/30 transition-all disabled:opacity-50 text-purple-dark"
                 style={{ borderColor: newJdIsUrl ? '#0DA1A4' : '#e5e7eb' }}
               />

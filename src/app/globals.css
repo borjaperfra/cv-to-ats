@@ -54,8 +54,13 @@
     display: flex !important;
   }
 
+  html {
+    height: 100%;
+  }
+
   body {
     background-color: #f0ede8 !important;
+    min-height: 100%;
     margin: 0;
     padding: 0;
   }
