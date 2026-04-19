@@ -72,6 +72,21 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const CV_KEYWORDS = [
+      'experiencia', 'experience', 'educación', 'education', 'habilidades', 'skills',
+      'trabajo', 'empleo', 'cargo', 'puesto', 'empresa', 'company', 'universidad',
+      'university', 'formación', 'training', 'curriculum', 'résumé', 'resume',
+      'idiomas', 'languages', 'certificaciones', 'certifications', 'logros', 'achievements',
+    ]
+    const sample = cvText.slice(0, 3000).toLowerCase()
+    const hasCVContent = CV_KEYWORDS.some(kw => sample.includes(kw))
+    if (!hasCVContent) {
+      return NextResponse.json(
+        { error: 'El documento no parece un CV. Por favor, sube tu currículum en formato PDF o DOCX.' },
+        { status: 422 }
+      )
+    }
+
     if (cvText.length > MAX_TEXT_CHARS) {
       return NextResponse.json(
         { error: 'El documento tiene demasiado contenido. Por favor, sube una versión más concisa.' },

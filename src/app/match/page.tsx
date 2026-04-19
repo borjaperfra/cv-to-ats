@@ -31,6 +31,7 @@ export default function MatchPage() {
   const [hasCachedCv, setHasCachedCv] = useState(false)
   const [cachedCvName, setCachedCvName] = useState('')
   const [cvFile, setCvFile] = useState<File | null>(null)
+  const [hasCachedResult, setHasCachedResult] = useState(false)
 
   // JD state
   const [jdText, setJdText] = useState('')
@@ -41,7 +42,7 @@ export default function MatchPage() {
   const jdIsUrl = /^https?:\/\/\S+$/.test(jdText.trim())
 
   useEffect(() => {
-    const cached = sessionStorage.getItem('atsCvText')
+    const cached = sessionStorage.getItem('atsCvText') || localStorage.getItem('atsCvText')
     const result = sessionStorage.getItem('atsResult')
     if (cached && cached.length > 100) {
       setHasCachedCv(true)
@@ -52,6 +53,7 @@ export default function MatchPage() {
         } catch { setCachedCvName('Tu CV') }
       }
     }
+    setHasCachedResult(!!sessionStorage.getItem('matchResult'))
   }, [])
 
   useEffect(() => {
@@ -138,6 +140,29 @@ export default function MatchPage() {
 
       {/* Form */}
       <main className="max-w-2xl mx-auto px-6 py-10 space-y-5">
+
+        {/* Cached result banner */}
+        {hasCachedResult && (
+          <div className="flex items-center justify-between p-4 rounded-xl" style={{ backgroundColor: '#e6f7f7' }}>
+            <div className="flex items-center gap-3">
+              <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#0DA1A4' }}>
+                <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <p className="font-sans text-sm font-[600]" style={{ color: '#0DA1A4' }}>
+                Tienes un análisis de match anterior guardado
+              </p>
+            </div>
+            <button
+              onClick={() => router.push('/match/results')}
+              className="font-sans font-[700] text-xs uppercase tracking-wider px-3 py-1.5 rounded-lg transition-colors duration-200"
+              style={{ backgroundColor: '#0DA1A4', color: '#ffffff' }}
+            >
+              Ver análisis →
+            </button>
+          </div>
+        )}
 
         {/* CV section */}
         <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>

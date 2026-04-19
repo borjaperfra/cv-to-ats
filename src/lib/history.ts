@@ -47,6 +47,7 @@ export function clearHistory(): void {
   if (typeof window === 'undefined') return
   localStorage.removeItem(STORAGE_KEY)
   localStorage.removeItem('cv-editor-draft')
+  localStorage.removeItem('atsCvText')
   sessionStorage.removeItem('atsCvText')
   sessionStorage.removeItem('atsResult')
 }

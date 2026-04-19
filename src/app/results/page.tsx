@@ -98,6 +98,9 @@ export default function ResultsPage() {
             <h2 className="font-sans font-[900] text-xl text-purple-dark">
               Mejoras recomendadas
             </h2>
+            <p className="font-sans text-xs text-gray-400 mt-1">
+              Cada análisis es independiente — al mejorar el CV pueden aparecer puntos nuevos. La puntuación puede subir o bajar entre iteraciones.
+            </p>
           </div>
 
           {/* Suggestion cards */}
