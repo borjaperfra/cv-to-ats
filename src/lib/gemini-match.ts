@@ -65,7 +65,10 @@ JSON structure:
   ]
 }
 
-IMPORTANT: All text values must be in the specified language. The "prioridad" values must always be "alta", "media" or "baja".
+IMPORTANT:
+- All text values must be in the specified language. The "prioridad" values must always be "alta", "media" or "baja".
+- NEVER open with flattery, praise, or motivational phrases. Do not say things like "great profile", "impressive background", "you have a lot to offer", or any equivalent. Go straight to the assessment.
+- If the match is low or medium, say so directly and clearly from the first sentence. Do not soften bad news with positivity first.
 
 CV TEXT:
 ---

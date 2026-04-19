@@ -14,25 +14,25 @@ type UploadState = 'idle' | 'uploading' | 'error'
 
 const LOADING_MESSAGES = [
   'Revisando el alfabeto...',
-  'Copiando tu estilazo...',
+  'Extrayendo entidades nombradas del texto...',
   'Leyendo tu experiencia...',
   'Asimilando esa pedazo de trayectoria...',
   'Consultando con los dioses de RRHH...',
-  'Contando tus logros con los dedos...',
+  'Tokenizando el contenido del CV...',
   'Buscando palabras clave con lupa...',
-  'Calibrando el detector de talento...',
+  'Calculando densidad de keywords ATS...',
   'Descifrando tu letra de médico...',
-  'Impresionándome con tu perfil...',
+  'Evaluando coherencia temporal del historial...',
   'Calculando cuántos ATS has sobrevivido...',
   'Desempolvando el diccionario de buzzwords...',
-  'Preguntándole a la IA si eres contratab\u006Ce...',
+  'Analizando estructura semántica del documento...',
   'Preparando el veredicto del robot reclutador...',
   'Analizando si usas Comic Sans (esperemos que no)...',
-  'Midiendo el nivel de sufrimiento del recruiter...',
+  'Clasificando secciones por relevancia ATS...',
   'Buscando el botón de "contratar ya"...',
-  'Evaluando si tu foto mola (aunque no la tengamos)...',
+  'Comparando perfil con patrones de mercado...',
   'Traduciendo tus logros al idioma corporativo...',
-  'Dándote más puntuación por el nombre chulo...',
+  'Generando recomendaciones accionables...',
 ]
 
 const ERROR_MESSAGES = [
@@ -83,8 +83,8 @@ const STEPS = [
     ),
   },
   {
-    title: 'La IA lo analiza',
-    desc: 'Gemini AI procesa el CV: extrae datos, evalúa keywords y detecta puntos débiles.',
+    title: 'Lo analizamos con IA',
+    desc: 'Usamos Gemini para procesar el CV: extraemos datos, evaluamos keywords y detectamos puntos débiles.',
     icon: (
       <svg className="w-5 h-5 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />

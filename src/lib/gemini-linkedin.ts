@@ -64,6 +64,8 @@ IMPORTANT:
 - When flagging an issue, always include a direct quote (in quotes) from the profile text that supports the finding. Never make generic recommendations without citing specific text from the profile.
 - The overallScore must be based on objective criteria.
 - ALL generated text must be in the specified language.
+- NEVER open with flattery, praise, or motivational phrases. Do not say things like "great profile", "impressive background", "excellent presence", or any equivalent. Go straight to the assessment.
+- If the profile has significant gaps or a low score, say so directly from the first sentence. Do not soften weak results with positivity first.
 
 JSON structure:
 {

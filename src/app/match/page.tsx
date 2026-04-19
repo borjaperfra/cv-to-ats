@@ -10,14 +10,14 @@ type State = 'idle' | 'analyzing' | 'error'
 
 const LOADING_MESSAGES = [
   'Comparando perfiles...',
-  'Buscando keywords en común...',
+  'Vectorizando keywords de la oferta...',
   'Midiendo el gap de experiencia...',
-  'Analizando requisitos de la oferta...',
+  'Calculando distancia semántica CV-JD...',
   'Calculando el match...',
   'Revisando habilidades técnicas...',
-  'Contando cuántos requisitos cumples...',
+  'Identificando requisitos excluyentes...',
   'Preparando recomendaciones personalizadas...',
-  'Consultando con el reclutador virtual...',
+  'Clasificando keywords por relevancia...',
   'Casi listo, generando tu informe...',
 ]
 

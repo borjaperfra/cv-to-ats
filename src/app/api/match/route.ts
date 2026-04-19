@@ -90,7 +90,17 @@ async function fetchJdFromUrl(rawUrl: string): Promise<string> {
     }
 
     const html = await response.text()
-    return htmlToText(html)
+    const text = htmlToText(html)
+
+    // Detect login walls: if the extracted text is short or contains login-wall signals
+    const loginSignals = ['sign in', 'log in', 'iniciar sesión', 'inicia sesión', 'create an account', 'crea una cuenta', 'password', 'contraseña']
+    const textLower = text.toLowerCase()
+    const hasLoginSignal = loginSignals.some(s => textLower.includes(s))
+    if (hasLoginSignal && text.length < 2000) {
+      throw new Error('La URL requiere iniciar sesión para ver el contenido. Prueba a pegar el texto de la oferta directamente.')
+    }
+
+    return text
   } catch (err) {
     if (err instanceof Error && err.name === 'AbortError') {
       throw new Error('La URL tardó demasiado en responder. Prueba a pegar el texto directamente.')
