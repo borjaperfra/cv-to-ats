@@ -143,7 +143,7 @@ export default function ResultsPage() {
           <div className="no-print pb-4 text-center">
             <button
               onClick={() => router.push('/')}
-              className="font-sans font-[800] text-sm text-gray-400 hover:text-teal transition-colors duration-200 uppercase tracking-wider"
+              className="font-sans font-[800] text-sm text-gray-400 hover:text-teal hover:opacity-80 transition-all duration-200 uppercase tracking-wider"
             >
               ← Analizar otro CV
             </button>

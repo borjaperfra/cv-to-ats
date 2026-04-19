@@ -7,6 +7,38 @@ import type { ATSAnalysisResult, Suggestion } from '@/types/analysis'
 import Header from '@/components/Header'
 import { EMPTY_CV } from '@/types/cv'
 import { exportToMarkdown } from '@/lib/export-markdown'
+import { getLang } from '@/components/LanguageSelector'
+
+const LABELS = {
+  es: {
+    personalInfo: 'Información personal', nombre: 'Nombre completo', cargo: 'Título profesional',
+    email: 'Email', telefono: 'Teléfono', linkedin: 'LinkedIn', ubicacion: 'Ubicación',
+    website: 'Web / Portfolio', resumenSection: 'Resumen profesional', resumenField: 'Resumen',
+    experiencia: 'Experiencia', educacion: 'Educación', habilidades: 'Habilidades', idiomas: 'Idiomas',
+    posicion: 'Posición', formacion: 'Formación', cargoField: 'Cargo', empresa: 'Empresa',
+    fechaInicio: 'Fecha inicio', fechaFin: 'Fecha fin', actual: 'Trabajo actual',
+    logros: 'Logros y responsabilidades', logrosEdu: 'Logros destacados (opcional)',
+    institucion: 'Institución', titulo: 'Título', campo: 'Campo de estudio',
+    idioma: 'Idioma', nivel: 'Nivel', addExp: 'Añadir experiencia', addEdu: 'Añadir educación',
+    addIdioma: 'Añadir idioma', addSkill: 'Añadir', addBullet: '+ Añadir punto',
+    addLogro: '+ Añadir logro', skillPlaceholder: 'React, Python, SQL... (Enter para añadir)',
+    preview: 'Vista previa · Plantilla Harvard',
+  },
+  en: {
+    personalInfo: 'Personal information', nombre: 'Full name', cargo: 'Professional title',
+    email: 'Email', telefono: 'Phone', linkedin: 'LinkedIn', ubicacion: 'Location',
+    website: 'Website / Portfolio', resumenSection: 'Professional summary', resumenField: 'Summary',
+    experiencia: 'Experience', educacion: 'Education', habilidades: 'Skills', idiomas: 'Languages',
+    posicion: 'Position', formacion: 'Education entry', cargoField: 'Job title', empresa: 'Company',
+    fechaInicio: 'Start date', fechaFin: 'End date', actual: 'Current job',
+    logros: 'Achievements and responsibilities', logrosEdu: 'Notable achievements (optional)',
+    institucion: 'Institution', titulo: 'Degree', campo: 'Field of study',
+    idioma: 'Language', nivel: 'Level', addExp: 'Add experience', addEdu: 'Add education',
+    addIdioma: 'Add language', addSkill: 'Add', addBullet: '+ Add bullet',
+    addLogro: '+ Add achievement', skillPlaceholder: 'React, Python, SQL... (Enter to add)',
+    preview: 'Preview · Harvard template',
+  },
+}
 
 const HarvardTemplate = dynamic(() => import('@/components/editor/HarvardTemplate'), { ssr: false })
 
@@ -89,6 +121,7 @@ export default function EditorPage() {
   const [exportingDocx, setExportingDocx] = useState(false)
   const [exportingPdf, setExportingPdf] = useState(false)
   const [savedAt, setSavedAt] = useState<Date | null>(null)
+  const [lang, setLang] = useState<'es' | 'en'>('es')
 
   // ─ Detected CV from previous analysis ─
   const [detectedCvText, setDetectedCvText] = useState<string | null>(null)
@@ -97,8 +130,11 @@ export default function EditorPage() {
   const [loadingCv, setLoadingCv] = useState(false)
   const [loadingRecs, setLoadingRecs] = useState(false)
   const [loadError, setLoadError] = useState('')
+  const [changesApplied, setChangesApplied] = useState<number | null>(null)
 
   useEffect(() => {
+    setLang(getLang())
+
     // Always restore the persisted draft first so the editor is never empty on return
     const draft = localStorage.getItem(DRAFT_KEY)
     if (draft) {
@@ -109,7 +145,8 @@ export default function EditorPage() {
     }
 
     // If there's fresh analysis data, show the import banner on top of whatever is loaded
-    const cvText = sessionStorage.getItem('atsCvText')
+    // Check sessionStorage first, fall back to localStorage (UX-04 persists it there)
+    const cvText = sessionStorage.getItem('atsCvText') || localStorage.getItem('atsCvText')
     const resultRaw = sessionStorage.getItem('atsResult')
     if (cvText && cvText.length > 100) {
       setDetectedCvText(cvText)
@@ -160,16 +197,25 @@ export default function EditorPage() {
     if (!allSuggestions.length) return
     setLoadingRecs(true)
     setLoadError('')
+    const prevCv = cv
     try {
       const res = await fetch('/api/editor/parse', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mode: 'improve', cvData: cv, suggestions: allSuggestions }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Error al aplicar las recomendaciones.')
-      setCv(data as CVData)
-      setDetectedResult(null) // dismiss recs button after applying
+      const data = await res.json() as CVData
+      if (!res.ok) throw new Error((data as unknown as { error: string }).error || 'Error al aplicar las recomendaciones.')
+      // Count changes between old and new CV
+      const bulletChanges = prevCv.experiencia.reduce((sum, exp, i) => {
+        const newExp = data.experiencia[i]
+        if (!newExp) return sum
+        return sum + exp.bullets.filter((b, bi) => b !== (newExp.bullets[bi] ?? '')).length
+      }, 0)
+      const resumenChanged = prevCv.resumen !== data.resumen ? 1 : 0
+      setChangesApplied(bulletChanges + resumenChanged)
+      setCv(data)
+      setDetectedResult(null)
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : 'Error inesperado.')
     } finally {
@@ -438,11 +484,11 @@ export default function EditorPage() {
         </div>
       </section>
 
-      {/* Two-column layout */}
-      <div className="max-w-7xl mx-auto px-4 py-8 flex gap-6 items-start">
+      {/* Two-column layout — each column scrolls independently */}
+      <div className="max-w-7xl mx-auto px-4 flex gap-6" style={{ height: 'calc(100vh - 64px)' }}>
 
         {/* ─── LEFT: Form ─── */}
-        <div className="flex-1 min-w-0 space-y-4 max-w-xl">
+        <div className="flex-1 min-w-0 max-w-xl overflow-y-auto py-8 pr-2 space-y-4">
 
           {/* ─ Empty state nudge ─ */}
           {!detectedCvText && !cvLoaded && !savedAt && (
@@ -573,6 +619,28 @@ export default function EditorPage() {
             </div>
           )}
 
+          {/* ─ Changes applied banner ─ */}
+          {changesApplied !== null && (
+            <div className="rounded-2xl p-4 flex items-center justify-between gap-3"
+              style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0' }}>
+              <div className="flex items-center gap-2.5">
+                <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#16a34a' }}>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
+                <p className="font-sans text-sm font-[600]" style={{ color: '#166534' }}>
+                  {changesApplied > 0
+                    ? `${changesApplied} ${changesApplied === 1 ? 'mejora aplicada' : 'mejoras aplicadas'} — revisa los cambios antes de exportar`
+                    : 'CV optimizado — revisa el resultado antes de exportar'}
+                </p>
+              </div>
+              <button onClick={() => setChangesApplied(null)} style={{ color: '#16a34a' }} aria-label="Cerrar">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          )}
+
           {/* ─ Load/apply error ─ */}
           {loadError && (
             <div className="p-3 rounded-xl bg-red-50 border border-red-200 flex items-start gap-2">
@@ -606,7 +674,7 @@ export default function EditorPage() {
             <button
               onClick={handleDocxExport}
               disabled={exportingDocx}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-sans font-[900] text-xs uppercase tracking-wider text-white transition-all duration-300 disabled:opacity-60"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-sans font-[900] text-xs uppercase tracking-wider text-white transition-all duration-300 disabled:opacity-60 hover:opacity-80"
               style={{ backgroundColor: '#092c64' }}
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -650,57 +718,57 @@ export default function EditorPage() {
           </div>
 
           {/* Personal Info */}
-          <Section title="Información personal">
+          <Section title={LABELS[lang].personalInfo}>
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
-                <Field label="Nombre completo" value={cv.personalInfo.nombre} onChange={v => setP('nombre', v)} placeholder="Juan García López" />
+                <Field label={LABELS[lang].nombre} value={cv.personalInfo.nombre} onChange={v => setP('nombre', v)} placeholder="Juan García López" />
               </div>
               <div className="col-span-2">
-                <Field label="Título profesional" value={cv.personalInfo.cargo} onChange={v => setP('cargo', v)} placeholder="Senior Software Engineer" />
+                <Field label={LABELS[lang].cargo} value={cv.personalInfo.cargo} onChange={v => setP('cargo', v)} placeholder="Senior Software Engineer" />
               </div>
-              <Field label="Email" value={cv.personalInfo.email} onChange={v => setP('email', v)} placeholder="juan@email.com" />
-              <Field label="Teléfono" value={cv.personalInfo.telefono} onChange={v => setP('telefono', v)} placeholder="+34 600 000 000" />
-              <Field label="LinkedIn" value={cv.personalInfo.linkedin} onChange={v => setP('linkedin', v)} placeholder="linkedin.com/in/juan" />
-              <Field label="Ubicación" value={cv.personalInfo.ubicacion} onChange={v => setP('ubicacion', v)} placeholder="Madrid, España" />
+              <Field label={LABELS[lang].email} value={cv.personalInfo.email} onChange={v => setP('email', v)} placeholder="juan@email.com" />
+              <Field label={LABELS[lang].telefono} value={cv.personalInfo.telefono} onChange={v => setP('telefono', v)} placeholder="+34 600 000 000" />
+              <Field label={LABELS[lang].linkedin} value={cv.personalInfo.linkedin} onChange={v => setP('linkedin', v)} placeholder="linkedin.com/in/juan" />
+              <Field label={LABELS[lang].ubicacion} value={cv.personalInfo.ubicacion} onChange={v => setP('ubicacion', v)} placeholder="Madrid, España" />
               <div className="col-span-2">
-                <Field label="Web / Portfolio" value={cv.personalInfo.website} onChange={v => setP('website', v)} placeholder="juangarcia.dev" />
+                <Field label={LABELS[lang].website} value={cv.personalInfo.website} onChange={v => setP('website', v)} placeholder="juangarcia.dev" />
               </div>
             </div>
           </Section>
 
           {/* Summary */}
-          <Section title="Resumen profesional">
-            <Field label="Resumen" value={cv.resumen}
+          <Section title={LABELS[lang].resumenSection}>
+            <Field label={LABELS[lang].resumenField} value={cv.resumen}
               onChange={v => setCv(prev => ({ ...prev, resumen: v }))}
               placeholder="Escribe un resumen conciso de tu perfil profesional..."
               multiline rows={4} />
           </Section>
 
           {/* Experience */}
-          <Section title="Experiencia">
+          <Section title={LABELS[lang].experiencia}>
             {cv.experiencia.map((exp, idx) => (
               <div key={exp.id} className="space-y-3 pt-3 border-t border-gray-100 first:border-0 first:pt-0">
                 <div className="flex items-center justify-between">
-                  <p className="font-sans font-[700] text-xs text-gray-500">Posición {idx + 1}</p>
+                  <p className="font-sans font-[700] text-xs text-gray-500">{LABELS[lang].posicion} {idx + 1}</p>
                   <RemoveButton onClick={() => removeExp(exp.id)} />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <Field label="Cargo" value={exp.cargo} onChange={v => updateExp(exp.id, { cargo: v })} placeholder="Software Engineer" />
-                  <Field label="Empresa" value={exp.empresa} onChange={v => updateExp(exp.id, { empresa: v })} placeholder="Acme Corp" />
-                  <Field label="Fecha inicio" value={exp.fechaInicio} onChange={v => updateExp(exp.id, { fechaInicio: v })} placeholder="Ene 2022" />
-                  <Field label="Fecha fin" value={exp.fechaFin} onChange={v => updateExp(exp.id, { fechaFin: v })} placeholder="Dic 2024" />
+                  <Field label={LABELS[lang].cargoField} value={exp.cargo} onChange={v => updateExp(exp.id, { cargo: v })} placeholder="Software Engineer" />
+                  <Field label={LABELS[lang].empresa} value={exp.empresa} onChange={v => updateExp(exp.id, { empresa: v })} placeholder="Acme Corp" />
+                  <Field label={LABELS[lang].fechaInicio} value={exp.fechaInicio} onChange={v => updateExp(exp.id, { fechaInicio: v })} placeholder="Ene 2022" />
+                  <Field label={LABELS[lang].fechaFin} value={exp.fechaFin} onChange={v => updateExp(exp.id, { fechaFin: v })} placeholder="Dic 2024" />
                   <div className="col-span-2">
-                    <Field label="Ubicación" value={exp.ubicacion} onChange={v => updateExp(exp.id, { ubicacion: v })} placeholder="Madrid, España" />
+                    <Field label={LABELS[lang].ubicacion} value={exp.ubicacion} onChange={v => updateExp(exp.id, { ubicacion: v })} placeholder="Madrid, España" />
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <input type="checkbox" id={`actual-${exp.id}`} checked={exp.actual}
                     onChange={e => updateExp(exp.id, { actual: e.target.checked })}
                     className="w-4 h-4 accent-teal rounded" />
-                  <label htmlFor={`actual-${exp.id}`} className="font-sans text-sm text-gray-500">Trabajo actual</label>
+                  <label htmlFor={`actual-${exp.id}`} className="font-sans text-sm text-gray-500">{LABELS[lang].actual}</label>
                 </div>
                 <div>
-                  <label className="block font-sans font-[600] text-xs uppercase tracking-wider text-gray-400 mb-1.5">Logros y responsabilidades</label>
+                  <label className="block font-sans font-[600] text-xs uppercase tracking-wider text-gray-400 mb-1.5">{LABELS[lang].logros}</label>
                   <div className="space-y-2">
                     {exp.bullets.map((b, bi) => (
                       <div key={bi} className="flex gap-2 items-start">
@@ -719,7 +787,7 @@ export default function EditorPage() {
                         <button onClick={() => {
                           const bullets = exp.bullets.filter((_, i) => i !== bi)
                           updateExp(exp.id, { bullets: bullets.length ? bullets : [''] })
-                        }} className="mt-2 text-gray-300 hover:text-red-400 transition-colors">
+                        }} className="mt-2 text-gray-300 hover:text-red-400 transition-colors duration-200">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                           </svg>
@@ -729,34 +797,34 @@ export default function EditorPage() {
                   </div>
                   <button
                     onClick={() => updateExp(exp.id, { bullets: [...exp.bullets, ''] })}
-                    className="mt-2 font-sans text-xs text-gray-400 hover:text-teal transition-colors">
-                    + Añadir punto
+                    className="mt-2 font-sans text-xs text-gray-400 hover:text-teal transition-colors duration-200">
+                    {LABELS[lang].addBullet}
                   </button>
                 </div>
               </div>
             ))}
-            <AddButton label="Añadir experiencia" onClick={addExp} />
+            <AddButton label={LABELS[lang].addExp} onClick={addExp} />
           </Section>
 
           {/* Education */}
-          <Section title="Educación">
+          <Section title={LABELS[lang].educacion}>
             {cv.educacion.map((edu, idx) => (
               <div key={edu.id} className="space-y-3 pt-3 border-t border-gray-100 first:border-0 first:pt-0">
                 <div className="flex items-center justify-between">
-                  <p className="font-sans font-[700] text-xs text-gray-500">Formación {idx + 1}</p>
+                  <p className="font-sans font-[700] text-xs text-gray-500">{LABELS[lang].formacion} {idx + 1}</p>
                   <RemoveButton onClick={() => removeEdu(edu.id)} />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="col-span-2">
-                    <Field label="Institución" value={edu.institucion} onChange={v => updateEdu(edu.id, { institucion: v })} placeholder="Universidad Complutense" />
+                    <Field label={LABELS[lang].institucion} value={edu.institucion} onChange={v => updateEdu(edu.id, { institucion: v })} placeholder="Universidad Complutense" />
                   </div>
-                  <Field label="Título" value={edu.titulo} onChange={v => updateEdu(edu.id, { titulo: v })} placeholder="Grado en Ingeniería" />
-                  <Field label="Campo de estudio" value={edu.campo} onChange={v => updateEdu(edu.id, { campo: v })} placeholder="Informática" />
-                  <Field label="Fecha inicio" value={edu.fechaInicio} onChange={v => updateEdu(edu.id, { fechaInicio: v })} placeholder="2016" />
-                  <Field label="Fecha fin" value={edu.fechaFin} onChange={v => updateEdu(edu.id, { fechaFin: v })} placeholder="2020" />
+                  <Field label={LABELS[lang].titulo} value={edu.titulo} onChange={v => updateEdu(edu.id, { titulo: v })} placeholder="Grado en Ingeniería" />
+                  <Field label={LABELS[lang].campo} value={edu.campo} onChange={v => updateEdu(edu.id, { campo: v })} placeholder="Informática" />
+                  <Field label={LABELS[lang].fechaInicio} value={edu.fechaInicio} onChange={v => updateEdu(edu.id, { fechaInicio: v })} placeholder="2016" />
+                  <Field label={LABELS[lang].fechaFin} value={edu.fechaFin} onChange={v => updateEdu(edu.id, { fechaFin: v })} placeholder="2020" />
                 </div>
                 <div>
-                  <label className="block font-sans font-[600] text-xs uppercase tracking-wider text-gray-400 mb-1.5">Logros destacados (opcional)</label>
+                  <label className="block font-sans font-[600] text-xs uppercase tracking-wider text-gray-400 mb-1.5">{LABELS[lang].logrosEdu}</label>
                   <div className="space-y-2">
                     {edu.logros.map((l, li) => (
                       <div key={li} className="flex gap-2 items-start">
@@ -774,7 +842,7 @@ export default function EditorPage() {
                         />
                         <button onClick={() => {
                           updateEdu(edu.id, { logros: edu.logros.filter((_, i) => i !== li) })
-                        }} className="mt-2 text-gray-300 hover:text-red-400 transition-colors">
+                        }} className="mt-2 text-gray-300 hover:text-red-400 transition-colors duration-200">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                           </svg>
@@ -784,17 +852,17 @@ export default function EditorPage() {
                   </div>
                   <button
                     onClick={() => updateEdu(edu.id, { logros: [...edu.logros, ''] })}
-                    className="mt-2 font-sans text-xs text-gray-400 hover:text-teal transition-colors">
-                    + Añadir logro
+                    className="mt-2 font-sans text-xs text-gray-400 hover:text-teal transition-colors duration-200">
+                    {LABELS[lang].addLogro}
                   </button>
                 </div>
               </div>
             ))}
-            <AddButton label="Añadir educación" onClick={addEdu} />
+            <AddButton label={LABELS[lang].addEdu} onClick={addEdu} />
           </Section>
 
           {/* Skills */}
-          <Section title="Habilidades">
+          <Section title={LABELS[lang].habilidades}>
             <div className="flex flex-wrap gap-2 min-h-[40px]">
               {cv.habilidades.map((skill, i) => (
                 <span key={i}
@@ -802,7 +870,7 @@ export default function EditorPage() {
                   style={{ backgroundColor: '#e6f7f7', color: '#0DA1A4' }}>
                   {skill}
                   <button onClick={() => setCv(prev => ({ ...prev, habilidades: prev.habilidades.filter((_, idx) => idx !== i) }))}
-                    className="text-teal/50 hover:text-teal transition-colors">
+                    className="text-teal/50 hover:text-teal transition-colors duration-200">
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
                     </svg>
@@ -815,28 +883,28 @@ export default function EditorPage() {
                 type="text" value={skillInput}
                 onChange={e => setSkillInput(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addSkill() } }}
-                placeholder="React, Python, SQL... (Enter para añadir)"
+                placeholder={LABELS[lang].skillPlaceholder}
                 className="flex-1 font-sans text-sm rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal/30 transition-all"
                 style={{ borderColor: '#e5e7eb', color: '#1a2744' }}
               />
               <button onClick={addSkill}
-                className="px-4 py-2 rounded-lg font-sans font-[700] text-xs uppercase tracking-wider text-white transition-all"
+                className="px-4 py-2 rounded-lg font-sans font-[700] text-xs uppercase tracking-wider text-white transition-all hover:opacity-80 duration-200"
                 style={{ backgroundColor: '#0DA1A4' }}>
-                Añadir
+                {LABELS[lang].addSkill}
               </button>
             </div>
           </Section>
 
           {/* Languages */}
-          <Section title="Idiomas">
+          <Section title={LABELS[lang].idiomas}>
             {cv.idiomas.map((l, idx) => (
               <div key={l.id} className="flex gap-3 items-end">
                 <div className="flex-1">
-                  <Field label={idx === 0 ? 'Idioma' : ''} value={l.idioma}
+                  <Field label={idx === 0 ? LABELS[lang].idioma : ''} value={l.idioma}
                     onChange={v => updateIdioma(l.id, { idioma: v })} placeholder="Español" />
                 </div>
                 <div className="flex-1">
-                  <Field label={idx === 0 ? 'Nivel' : ''} value={l.nivel}
+                  <Field label={idx === 0 ? LABELS[lang].nivel : ''} value={l.nivel}
                     onChange={v => updateIdioma(l.id, { nivel: v })} placeholder="Nativo / B2 / Avanzado" />
                 </div>
                 <div className="mb-0.5">
@@ -844,15 +912,15 @@ export default function EditorPage() {
                 </div>
               </div>
             ))}
-            <AddButton label="Añadir idioma" onClick={addIdioma} />
+            <AddButton label={LABELS[lang].addIdioma} onClick={addIdioma} />
           </Section>
 
         </div>
 
         {/* ─── RIGHT: Preview ─── */}
-        <div className="hidden lg:block sticky top-20" style={{ width: '210mm', flexShrink: 0 }}>
+        <div className="hidden lg:block overflow-y-auto py-8" style={{ width: '210mm', flexShrink: 0 }}>
           <p className="font-sans font-[700] text-xs uppercase tracking-widest text-gray-400 mb-3">
-            Vista previa · Plantilla Harvard
+            {LABELS[lang].preview}
           </p>
           <div style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.12)', borderRadius: 4, overflow: 'hidden' }}>
             <HarvardTemplate data={cv} />

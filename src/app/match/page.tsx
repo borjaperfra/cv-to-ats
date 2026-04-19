@@ -327,7 +327,7 @@ export default function MatchPage() {
           <button
             onClick={handleAnalyze}
             disabled={!canSubmit}
-            className="w-full py-3.5 rounded-xl font-sans font-[900] text-sm uppercase tracking-wider transition-all duration-300"
+            className="w-full py-3.5 rounded-xl font-sans font-[900] text-sm uppercase tracking-wider transition-all duration-300 hover:opacity-80 disabled:hover:opacity-100"
             style={{
               backgroundColor: canSubmit ? '#092c64' : '#e5e7eb',
               color: canSubmit ? '#ffffff' : '#9ca3af',
