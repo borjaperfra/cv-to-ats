@@ -4,6 +4,7 @@ import type { CVData } from '@/types/cv'
 import type { Suggestion } from '@/types/analysis'
 
 export const runtime = 'nodejs'
+export const maxDuration = 60
 
 export async function POST(req: NextRequest) {
   try {

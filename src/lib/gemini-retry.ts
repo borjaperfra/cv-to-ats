@@ -1,5 +1,6 @@
-const MAX_RETRIES = 3
+const MAX_RETRIES = 2
 const BASE_DELAY_MS = 1_000
+const CALL_TIMEOUT_MS = 30_000
 
 function isRetryable(error: unknown): boolean {
   if (!(error instanceof Error)) return false
@@ -21,7 +22,10 @@ function sleep(ms: number): Promise<void> {
 export async function withGeminiRetry<T>(fn: () => Promise<T>): Promise<T> {
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
-      return await fn()
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Gemini request timed out after 30s')), CALL_TIMEOUT_MS)
+      )
+      return await Promise.race([fn(), timeout])
     } catch (error) {
       if (attempt === MAX_RETRIES || !isRetryable(error)) throw error
       await sleep(BASE_DELAY_MS * Math.pow(2, attempt) + Math.random() * 200)

@@ -209,11 +209,15 @@ export default function EditorPage() {
     setLoadingCv(true)
     setLoadError('')
     try {
+      const ctrl = new AbortController()
+      const tid = setTimeout(() => ctrl.abort(), 55_000)
       const res = await fetch('/api/editor/parse', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mode: 'parse', cvText: detectedCvText }),
+        signal: ctrl.signal,
       })
+      clearTimeout(tid)
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Error al cargar el CV.')
       setCv(data as CVData)
@@ -233,11 +237,15 @@ export default function EditorPage() {
     setLoadError('')
     const prevCv = cv
     try {
+      const ctrl = new AbortController()
+      const tid = setTimeout(() => ctrl.abort(), 55_000)
       const res = await fetch('/api/editor/parse', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mode: 'improve', cvData: cv, suggestions: allSuggestions }),
+        signal: ctrl.signal,
       })
+      clearTimeout(tid)
       const data = await res.json() as CVData
       if (!res.ok) throw new Error((data as unknown as { error: string }).error || 'Error al aplicar las recomendaciones.')
       const bulletChanges = prevCv.experiencia.reduce((sum, exp, i) => {
