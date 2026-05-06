@@ -148,9 +148,7 @@ export default function EditorPage() {
       } catch { /* ignore */ }
     }
 
-    // If there's fresh analysis data, show the import banner on top of whatever is loaded
-    // Check sessionStorage first, fall back to localStorage (UX-04 persists it there)
-    const cvText = sessionStorage.getItem('atsCvText') || localStorage.getItem('atsCvText')
+    const cvText = sessionStorage.getItem('atsCvText')
     const resultRaw = sessionStorage.getItem('atsResult')
     if (cvText && cvText.length > 100) {
       setDetectedCvText(cvText)

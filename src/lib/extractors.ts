@@ -1,11 +1,14 @@
 // Server-side only — never import from client components
 
+const OCR_TIMEOUT_MS = 30_000
+
 async function extractFromPDFWithOCR(buffer: Buffer): Promise<string> {
   const { GoogleGenerativeAI } = await import('@google/generative-ai')
+  const { withGeminiRetry } = await import('@/lib/gemini-retry')
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
   const model = genAI.getGenerativeModel({ model: 'gemini-3-flash-preview', generationConfig: { temperature: 0 } })
 
-  const result = await model.generateContent([
+  const ocrCall = withGeminiRetry(() => model.generateContent([
     {
       inlineData: {
         mimeType: 'application/pdf',
@@ -13,8 +16,13 @@ async function extractFromPDFWithOCR(buffer: Buffer): Promise<string> {
       },
     },
     'Extract all the text from this PDF document exactly as it appears. Return only the extracted text, no commentary.',
-  ])
+  ]))
 
+  const timeoutGuard = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error('El PDF tardó demasiado en procesarse. Inténtalo de nuevo.')), OCR_TIMEOUT_MS)
+  )
+
+  const result = await Promise.race([ocrCall, timeoutGuard])
   return result.response.text()
 }
 

@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import type { CVData } from '@/types/cv'
 import type { Suggestion } from '@/types/analysis'
+import { withGeminiRetry } from '@/lib/gemini-retry'
 
 if (!process.env.GEMINI_API_KEY) {
   throw new Error('GEMINI_API_KEY environment variable is not set.')
@@ -139,7 +140,7 @@ function parseGeminiJson(text: string): RawCVData {
 // ─── Public functions ─────────────────────────────────────────────────────────
 
 export async function parseCVToEditor(cvText: string): Promise<CVData> {
-  const result = await model.generateContent(PARSE_PROMPT(cvText))
+  const result = await withGeminiRetry(() => model.generateContent(PARSE_PROMPT(cvText)))
   const raw = parseGeminiJson(result.response.text())
   return hydrateCVData(raw)
 }
@@ -157,7 +158,7 @@ export async function improveCVWithSuggestions(
     habilidades:  cvData.habilidades,
     idiomas:      cvData.idiomas.map(({ id: _id, ...rest }) => rest),
   }
-  const result = await model.generateContent(IMPROVE_PROMPT(raw, suggestions))
+  const result = await withGeminiRetry(() => model.generateContent(IMPROVE_PROMPT(raw, suggestions)))
   const improved = parseGeminiJson(result.response.text())
   // Preserve personal info exactly (Gemini should not change it, but just in case)
   improved.personalInfo = raw.personalInfo

@@ -289,7 +289,6 @@ export default function UploadPage() {
       if (!response.ok) throw new Error(data.error || 'Error al analizar el CV.')
       if (data._cvText) {
         sessionStorage.setItem('atsCvText', data._cvText)
-        try { localStorage.setItem('atsCvText', data._cvText) } catch { /* storage full */ }
       }
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { _cvText, ...result } = data

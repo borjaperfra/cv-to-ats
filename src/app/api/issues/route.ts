@@ -1,14 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { getSupabase } from '@/lib/supabase'
 
 export const runtime = 'nodejs'
-
-function getSupabase() {
-  return createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
-}
 
 // Issues pre-generadas a partir del análisis del feedback (seed inicial)
 const SEED_ISSUES = [

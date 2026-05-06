@@ -42,7 +42,7 @@ export default function MatchPage() {
   const jdIsUrl = /^https?:\/\/\S+$/.test(jdText.trim())
 
   useEffect(() => {
-    const cached = sessionStorage.getItem('atsCvText') || localStorage.getItem('atsCvText')
+    const cached = sessionStorage.getItem('atsCvText')
     const result = sessionStorage.getItem('atsResult')
     if (cached && cached.length > 100) {
       setHasCachedCv(true)

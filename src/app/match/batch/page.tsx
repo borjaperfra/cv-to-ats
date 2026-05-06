@@ -61,7 +61,7 @@ export default function BatchMatchPage() {
   const [errorMsg, setErrorMsg] = useState('')
 
   useEffect(() => {
-    const cached = sessionStorage.getItem('atsCvText') || localStorage.getItem('atsCvText')
+    const cached = sessionStorage.getItem('atsCvText')
     if (cached && cached.length > 100) {
       setHasCachedCv(true)
       const raw = sessionStorage.getItem('atsResult')

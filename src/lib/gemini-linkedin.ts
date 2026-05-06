@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import type { LinkedInResult } from '@/types/linkedin'
+import { withGeminiRetry } from '@/lib/gemini-retry'
 
 if (!process.env.GEMINI_API_KEY) {
   throw new Error('GEMINI_API_KEY environment variable is not set.')
@@ -118,7 +119,7 @@ function deduplicateProfileText(text: string): string {
 export async function analyzeLinkedIn(profileText: string, lang: 'es' | 'en' = 'es'): Promise<LinkedInResult> {
   const cleanedText = deduplicateProfileText(profileText)
   const prompt = buildLinkedInPrompt(cleanedText, lang)
-  const result = await model.generateContent(prompt)
+  const result = await withGeminiRetry(() => model.generateContent(prompt))
   const text = result.response.text()
 
   const cleaned = text

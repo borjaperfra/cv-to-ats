@@ -38,11 +38,20 @@ export function checkRateLimit(ip: string): { allowed: boolean; retryAfter: numb
   return { allowed: true, retryAfter: 0 }
 }
 
+function isValidIp(ip: string): boolean {
+  return ip.length > 0 && ip.length <= 45 && /^[\d.:a-fA-F]+$/.test(ip)
+}
+
 export function getClientIp(request: Request): string {
-  // Vercel / proxies set x-forwarded-for; fall back to a generic key
   const xff = (request.headers as Headers).get('x-forwarded-for')
-  if (xff) return xff.split(',')[0].trim()
+  if (xff) {
+    const ip = xff.split(',')[0].trim()
+    if (isValidIp(ip)) return ip
+  }
   const realIp = (request.headers as Headers).get('x-real-ip')
-  if (realIp) return realIp.trim()
+  if (realIp) {
+    const ip = realIp.trim()
+    if (isValidIp(ip)) return ip
+  }
   return 'unknown'
 }

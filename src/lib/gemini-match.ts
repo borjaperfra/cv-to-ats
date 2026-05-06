@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import type { MatchResult } from '@/types/match'
+import { withGeminiRetry } from '@/lib/gemini-retry'
 
 if (!process.env.GEMINI_API_KEY) {
   throw new Error('GEMINI_API_KEY environment variable is not set.')
@@ -83,7 +84,7 @@ ${jdText}
 
 export async function matchWithGemini(cvText: string, jdText: string, lang: 'es' | 'en' = 'es'): Promise<MatchResult> {
   const prompt = buildMatchPrompt(cvText, jdText, lang)
-  const result = await model.generateContent(prompt)
+  const result = await withGeminiRetry(() => model.generateContent(prompt))
   const text = result.response.text()
 
   const cleaned = text

@@ -1,14 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { getSupabase } from '@/lib/supabase'
 
 export const runtime = 'nodejs'
-
-function getSupabase() {
-  return createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -43,6 +36,7 @@ export async function GET() {
       .from('feedback')
       .select('*')
       .order('fecha', { ascending: false })
+      .limit(500)
 
     if (error) throw error
 

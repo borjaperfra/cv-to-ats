@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import type { ATSAnalysisResult } from '@/types/analysis'
+import { withGeminiRetry } from '@/lib/gemini-retry'
 
 if (!process.env.GEMINI_API_KEY) {
   throw new Error('GEMINI_API_KEY environment variable is not set.')
@@ -121,7 +122,7 @@ ${cvText}
 
 export async function analyzeWithGemini(cvText: string, lang: 'es' | 'en' = 'es'): Promise<ATSAnalysisResult> {
   const prompt = buildPrompt(cvText, lang)
-  const result = await model.generateContent(prompt)
+  const result = await withGeminiRetry(() => model.generateContent(prompt))
   const text = result.response.text()
 
   const cleaned = text
