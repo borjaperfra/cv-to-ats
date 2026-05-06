@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { extractCVText } from '@/lib/extractors'
 import { analyzeWithGemini } from '@/lib/gemini'
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
+import { getSupabase } from '@/lib/supabase'
 
 export const runtime = 'nodejs'
 
@@ -108,6 +109,8 @@ export async function POST(request: NextRequest) {
     const lang = (formData.get('lang') as string | null) === 'en' ? 'en' : 'es'
     const result = await analyzeWithGemini(cleanedCvText, lang)
     result.analyzedAt = new Date().toISOString()
+
+    void (async () => { try { await getSupabase().rpc('increment_stat', { stat_id: 'cvs_analyzed' }) } catch {} })()
 
     return NextResponse.json({ ...result, _cvText: cvText })
   } catch (error) {
