@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic'
 import type { CVData, ExperienciaEntry, EducacionEntry, IdiomaEntry } from '@/types/cv'
 import type { ATSAnalysisResult, Suggestion } from '@/types/analysis'
 import Header from '@/components/Header'
-import { EMPTY_CV } from '@/types/cv'
+import { EMPTY_CV, DEMO_CV } from '@/types/cv'
 import { exportToMarkdown } from '@/lib/export-markdown'
 import { getLang } from '@/components/LanguageSelector'
 
@@ -120,7 +120,7 @@ function wordCount(cv: CVData): number {
 }
 
 export default function EditorPage() {
-  const [cv, setCv] = useState<CVData>(EMPTY_CV)
+  const [cv, setCv] = useState<CVData>(DEMO_CV)
   const [showPreview, setShowPreview] = useState(false)
   const [exportingDocx, setExportingDocx] = useState(false)
   const [exportingPdf, setExportingPdf] = useState(false)
