@@ -1,23 +1,21 @@
-import type { CVData } from '@/types/cv'
+import type { CVData, SkillCategories } from '@/types/cv'
 
-interface Props {
-  data: CVData
-  lang?: 'es' | 'en'
-}
-
-const SECTION_LABELS = {
-  es: { summary: 'Resumen', skills: 'Habilidades', experience: 'Experiencia', education: 'Educación',  languages: 'Idiomas' },
-  en: { summary: 'Summary', skills: 'Skills',      experience: 'Experience',  education: 'Education',  languages: 'Languages' },
-}
+const SKILL_ROWS: { key: keyof SkillCategories; label: string }[] = [
+  { key: 'languages',  label: 'Languages' },
+  { key: 'frameworks', label: 'Frameworks' },
+  { key: 'databases',  label: 'Databases' },
+  { key: 'tools',      label: 'Technologies / Tools' },
+  { key: 'practices',  label: 'Practices' },
+]
 
 function SectionHeader({ title }: { title: string }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '8pt', marginTop: '16pt', marginBottom: '6pt' }}>
       <span style={{
         fontWeight: 700,
-        fontSize: '10.5pt',
+        fontSize: '11pt',
         textTransform: 'uppercase' as const,
-        letterSpacing: '0.1em',
+        letterSpacing: '0.08em',
         color: '#111',
         whiteSpace: 'nowrap' as const,
         flexShrink: 0,
@@ -29,15 +27,20 @@ function SectionHeader({ title }: { title: string }) {
   )
 }
 
-export default function HarvardTemplate({ data, lang = 'es' }: Props) {
-  const { personalInfo: p, resumen, experiencia, educacion, habilidades, idiomas } = data
-  const L = SECTION_LABELS[lang]
+export default function HarvardTemplate({ data }: { data: CVData }) {
+  const { personalInfo: p, experiencia, proyectos, educacion, habilidades, idiomas } = data
 
+  // Last 2 words → bold surnames; everything before → light given name(s)
   const nameParts = (p.nombre || '').trim().split(/\s+/)
-  const lastName  = nameParts.length > 1 ? nameParts[nameParts.length - 1] : ''
-  const firstName = nameParts.length > 1 ? nameParts.slice(0, -1).join(' ') : (nameParts[0] || '')
+  const firstName = nameParts.length > 2
+    ? nameParts.slice(0, -2).join(' ')
+    : (nameParts.length === 2 ? nameParts[0] : '')
+  const lastNames = nameParts.length > 1
+    ? nameParts.slice(-2).join(' ')
+    : (nameParts[0] || '')
 
   const contactParts = [p.email, p.telefono, p.ubicacion, p.linkedin, p.website].filter(Boolean)
+  const hasSkills = SKILL_ROWS.some(r => habilidades[r.key].length > 0)
 
   return (
     <div
@@ -54,12 +57,12 @@ export default function HarvardTemplate({ data, lang = 'es' }: Props) {
       }}
     >
       {/* Header */}
-      <div style={{ display: 'flex', gap: '8mm', alignItems: 'flex-start' }}>
+      <header style={{ display: 'flex', gap: '8mm', alignItems: 'flex-start' }}>
         {p.foto && (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={p.foto}
-            alt="Foto de perfil"
+            alt="Profile photo"
             style={{
               width: '28mm', height: '28mm',
               objectFit: 'cover',
@@ -73,10 +76,12 @@ export default function HarvardTemplate({ data, lang = 'es' }: Props) {
           <div style={{ marginBottom: '3pt' }}>
             {p.nombre
               ? <>
-                  <span style={{ fontSize: '22pt', fontWeight: 300, letterSpacing: '-0.01em' }}>{firstName} </span>
-                  <span style={{ fontSize: '22pt', fontWeight: 700, letterSpacing: '-0.01em' }}>{lastName}</span>
+                  {firstName && (
+                    <span style={{ fontSize: '22pt', fontWeight: 300, letterSpacing: '-0.01em' }}>{firstName} </span>
+                  )}
+                  <span style={{ fontSize: '22pt', fontWeight: 700, letterSpacing: '-0.01em' }}>{lastNames}</span>
                 </>
-              : <span style={{ fontSize: '22pt', fontWeight: 700, color: '#ccc' }}>Tu Nombre</span>
+              : <span style={{ fontSize: '22pt', fontWeight: 700, color: '#ccc' }}>Your Name</span>
             }
           </div>
           {p.cargo && (
@@ -90,41 +95,42 @@ export default function HarvardTemplate({ data, lang = 'es' }: Props) {
             </div>
           )}
         </div>
-      </div>
-
-      {/* Summary */}
-      {resumen && (
-        <>
-          <SectionHeader title={L.summary} />
-          <p style={{ fontSize: '10pt', lineHeight: '1.5', margin: 0 }}>{resumen}</p>
-        </>
-      )}
+      </header>
 
       {/* Skills */}
-      {habilidades.length > 0 && (
-        <>
-          <SectionHeader title={L.skills} />
-          <p style={{ fontSize: '9.5pt', lineHeight: '1.6', margin: 0 }}>{habilidades.join(', ')}</p>
-        </>
+      {hasSkills && (
+        <section aria-label="Skills">
+          <SectionHeader title="Skills" />
+          <div style={{ fontSize: '9.5pt', lineHeight: '1.7' }}>
+            {SKILL_ROWS.map(({ key, label }) =>
+              habilidades[key].length > 0 && (
+                <div key={key} style={{ display: 'flex', gap: '4pt' }}>
+                  <span style={{ fontWeight: 700, minWidth: '108pt', flexShrink: 0 }}>{label}:</span>
+                  <span>{habilidades[key].join(', ')}</span>
+                </div>
+              )
+            )}
+          </div>
+        </section>
       )}
 
       {/* Experience */}
       {experiencia.length > 0 && (
-        <>
-          <SectionHeader title={L.experience} />
+        <section aria-label="Experience">
+          <SectionHeader title="Experience" />
           {experiencia.map(exp => {
             const period = exp.actual
-              ? `${exp.fechaInicio} – ${lang === 'en' ? 'Present' : 'Presente'}`
+              ? `${exp.fechaInicio} – Present`
               : `${exp.fechaInicio} – ${exp.fechaFin}`
-            const meta = [exp.empresa, exp.ubicacion].filter(Boolean).join(' · ')
+            const roleMeta = [exp.cargo, exp.ubicacion].filter(Boolean).join(' · ')
             return (
               <div key={exp.id} style={{ marginBottom: '10pt', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                  <span style={{ fontWeight: 700, fontSize: '10pt' }}>{exp.cargo}</span>
+                  <span style={{ fontWeight: 700, fontSize: '10pt' }}>{exp.empresa}</span>
                   <span style={{ fontSize: '9pt', color: '#555', flexShrink: 0, marginLeft: '8pt' }}>{period}</span>
                 </div>
-                {meta && (
-                  <div style={{ fontSize: '9pt', color: '#666', marginTop: '1pt', marginBottom: '3pt' }}>{meta}</div>
+                {roleMeta && (
+                  <div style={{ fontSize: '9pt', color: '#555', fontStyle: 'italic', marginTop: '1pt', marginBottom: '3pt' }}>{roleMeta}</div>
                 )}
                 {exp.bullets.filter(Boolean).length > 0 && (
                   <ul style={{ margin: 0, paddingLeft: 0, listStyle: 'none' }}>
@@ -139,13 +145,33 @@ export default function HarvardTemplate({ data, lang = 'es' }: Props) {
               </div>
             )
           })}
-        </>
+        </section>
+      )}
+
+      {/* Projects */}
+      {proyectos.length > 0 && (
+        <section aria-label="Projects">
+          <SectionHeader title="Projects" />
+          {proyectos.map(proj => (
+            <div key={proj.id} style={{ marginBottom: '8pt', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                <span style={{ fontWeight: 700, fontSize: '10pt' }}>{proj.nombre}</span>
+                {proj.url && (
+                  <span style={{ fontSize: '8.5pt', color: '#666', flexShrink: 0, marginLeft: '8pt' }}>{proj.url}</span>
+                )}
+              </div>
+              {proj.descripcion && (
+                <p style={{ margin: '2pt 0 0 0', fontSize: '10pt', lineHeight: '1.45' }}>{proj.descripcion}</p>
+              )}
+            </div>
+          ))}
+        </section>
       )}
 
       {/* Education */}
       {educacion.length > 0 && (
-        <>
-          <SectionHeader title={L.education} />
+        <section aria-label="Education">
+          <SectionHeader title="Education" />
           {educacion.map(edu => {
             const period = `${edu.fechaInicio} – ${edu.fechaFin}`
             const degree = [edu.titulo, edu.campo].filter(Boolean).join(', ')
@@ -153,12 +179,12 @@ export default function HarvardTemplate({ data, lang = 'es' }: Props) {
               <div key={edu.id} style={{ marginBottom: '8pt', breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                   <span style={{ fontWeight: 700, fontSize: '10pt' }}>
-                    {degree || <span style={{ color: '#ccc' }}>Título</span>}
+                    {edu.institucion || <span style={{ color: '#ccc' }}>Institution</span>}
                   </span>
                   <span style={{ fontSize: '9pt', color: '#555', flexShrink: 0, marginLeft: '8pt' }}>{period}</span>
                 </div>
-                {edu.institucion && (
-                  <div style={{ fontSize: '9pt', color: '#666', marginTop: '1pt', marginBottom: '2pt' }}>{edu.institucion}</div>
+                {degree && (
+                  <div style={{ fontSize: '9pt', color: '#555', fontStyle: 'italic', marginTop: '1pt', marginBottom: '2pt' }}>{degree}</div>
                 )}
                 {edu.logros.filter(Boolean).length > 0 && (
                   <ul style={{ margin: 0, paddingLeft: 0, listStyle: 'none' }}>
@@ -173,17 +199,17 @@ export default function HarvardTemplate({ data, lang = 'es' }: Props) {
               </div>
             )
           })}
-        </>
+        </section>
       )}
 
-      {/* Languages */}
+      {/* Languages (spoken) */}
       {idiomas.length > 0 && (
-        <>
-          <SectionHeader title={L.languages} />
+        <section aria-label="Languages">
+          <SectionHeader title="Languages" />
           <p style={{ fontSize: '9.5pt', lineHeight: '1.6', margin: 0 }}>
             {idiomas.map(l => `${l.idioma}: ${l.nivel}`).join('  ·  ')}
           </p>
-        </>
+        </section>
       )}
     </div>
   )

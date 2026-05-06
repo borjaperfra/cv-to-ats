@@ -36,12 +36,28 @@ export interface IdiomaEntry {
   nivel:  string
 }
 
+export interface ProyectoEntry {
+  id:          string
+  nombre:      string
+  descripcion: string
+  url:         string
+}
+
+export interface SkillCategories {
+  languages:  string[]
+  frameworks: string[]
+  databases:  string[]
+  tools:      string[]
+  practices:  string[]
+}
+
 export interface CVData {
   personalInfo: PersonalInfo
   resumen:      string
   experiencia:  ExperienciaEntry[]
+  proyectos:    ProyectoEntry[]
   educacion:    EducacionEntry[]
-  habilidades:  string[]
+  habilidades:  SkillCategories
   idiomas:      IdiomaEntry[]
 }
 
@@ -52,8 +68,9 @@ export const EMPTY_CV: CVData = {
   },
   resumen:     '',
   experiencia: [],
+  proyectos:   [],
   educacion:   [],
-  habilidades: [],
+  habilidades: { languages: [], frameworks: [], databases: [], tools: [], practices: [] },
   idiomas:     [],
 }
 
@@ -68,14 +85,14 @@ export const DEMO_CV: CVData = {
     ubicacion: 'Madrid, Spain',
     website:   '',
   },
-  resumen: 'Software Engineer con más de 5 años de experiencia en backend y sistemas distribuidos. Especializado en Java, Spring y arquitecturas orientadas a eventos con Kafka. Historial de liderazgo técnico en equipos pequeños y entrega de soluciones con impacto medible.',
+  resumen: '',
   experiencia: [
     {
       id: 'demo-exp-1',
       empresa:     'TechHotel Solutions',
       cargo:       'Software Engineer',
       ubicacion:   'Madrid, Spain',
-      fechaInicio: 'Ene 2022',
+      fechaInicio: 'Jan 2022',
       fechaFin:    '',
       actual:      true,
       bullets: [
@@ -90,7 +107,7 @@ export const DEMO_CV: CVData = {
       cargo:       'Software Engineer',
       ubicacion:   'Santiago de Compostela, Spain',
       fechaInicio: 'Jul 2019',
-      fechaFin:    'Dic 2021',
+      fechaFin:    'Dec 2021',
       actual:      false,
       bullets: [
         'Led a 5-person team building a water quality analysis platform using drones and USVs to collect samples.',
@@ -102,7 +119,7 @@ export const DEMO_CV: CVData = {
     {
       id: 'demo-exp-3',
       empresa:     'WebCraft Studio',
-      cargo:       'Web Developer (Prácticas)',
+      cargo:       'Web Developer (Intern)',
       ubicacion:   'Santiago de Compostela, Spain',
       fechaInicio: 'Sep 2018',
       fechaFin:    'Jun 2019',
@@ -112,26 +129,34 @@ export const DEMO_CV: CVData = {
       ],
     },
   ],
+  proyectos: [
+    {
+      id:          'demo-proj-1',
+      nombre:      'Open Toponym',
+      descripcion: 'Open-source collaborative platform for geospatial place name data, containing over 1.5M entries with full metadata and multilingual search. Built with Spring Boot, Angular and PostgreSQL.',
+      url:         'github.com/danigarcia/open-toponym',
+    },
+  ],
   educacion: [
     {
       id:          'demo-edu-1',
       institucion: 'Universidad de Santiago de Compostela',
-      titulo:      'Grado en Ingeniería Informática',
-      campo:       'Computer Science',
+      titulo:      'B.Sc. Computer Science',
+      campo:       'Software Engineering',
       fechaInicio: '2014',
       fechaFin:    '2018',
-      logros:      ['Nota media: 8.2/10'],
+      logros:      ['GPA: 8.2/10'],
     },
   ],
-  habilidades: [
-    'Java', 'JavaScript', 'TypeScript', 'SQL', 'HTML', 'CSS',
-    'Spring', 'Angular',
-    'MySQL', 'PostgreSQL', 'Neo4j', 'Oracle', 'SQLite',
-    'Docker', 'Jenkins', 'Kafka', 'RabbitMQ', 'SonarQube', 'Maven', 'Git',
-    'Agile', 'Scrum', 'SOLID Principles', 'TDD', 'Code Reviews',
-  ],
+  habilidades: {
+    languages:  ['Java', 'JavaScript', 'TypeScript', 'SQL', 'HTML', 'CSS'],
+    frameworks: ['Spring', 'Angular'],
+    databases:  ['MySQL', 'PostgreSQL', 'Neo4j', 'Oracle', 'SQLite'],
+    tools:      ['Docker', 'Jenkins', 'Kafka', 'RabbitMQ', 'SonarQube', 'Maven', 'Git'],
+    practices:  ['Agile', 'Scrum', 'SOLID Principles', 'TDD', 'Code Reviews'],
+  },
   idiomas: [
-    { id: 'demo-lang-1', idioma: 'Español', nivel: 'Nativo' },
-    { id: 'demo-lang-2', idioma: 'Inglés',  nivel: 'C1 Avanzado' },
+    { id: 'demo-lang-1', idioma: 'Spanish', nivel: 'Native' },
+    { id: 'demo-lang-2', idioma: 'English', nivel: 'C1 Advanced' },
   ],
 }

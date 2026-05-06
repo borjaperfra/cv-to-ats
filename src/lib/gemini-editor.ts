@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
-import type { CVData } from '@/types/cv'
+import type { CVData, SkillCategories } from '@/types/cv'
 import type { Suggestion } from '@/types/analysis'
 import { withGeminiRetry } from '@/lib/gemini-retry'
 
@@ -9,7 +9,7 @@ if (!process.env.GEMINI_API_KEY) {
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
 const model = genAI.getGenerativeModel({
-  model: 'gemini-3-flash-preview',
+  model: 'gemini-2.5-flash-preview',
   generationConfig: { temperature: 0 },
 })
 
@@ -18,15 +18,19 @@ const model = genAI.getGenerativeModel({
 type RawExperiencia = Omit<CVData['experiencia'][0], 'id'>
 type RawEducacion   = Omit<CVData['educacion'][0], 'id'>
 type RawIdioma      = Omit<CVData['idiomas'][0], 'id'>
+type RawProyecto    = Omit<CVData['proyectos'][0], 'id'>
 
 interface RawCVData {
   personalInfo: CVData['personalInfo']
   resumen:      string
   experiencia:  RawExperiencia[]
+  proyectos:    RawProyecto[]
   educacion:    RawEducacion[]
-  habilidades:  string[]
+  habilidades:  SkillCategories
   idiomas:      RawIdioma[]
 }
+
+const EMPTY_SKILLS: SkillCategories = { languages: [], frameworks: [], databases: [], tools: [], practices: [] }
 
 // ─── Parse raw CV text → structured CVData ───────────────────────────────────
 
@@ -44,16 +48,23 @@ Return exactly this structure:
     "ubicacion": "<city, country>",
     "website": "<personal website or portfolio url>"
   },
-  "resumen": "<professional summary or objective, if present>",
+  "resumen": "",
   "experiencia": [
     {
       "empresa": "<company name>",
       "cargo": "<job title>",
       "ubicacion": "<location>",
-      "fechaInicio": "<start date, e.g. 'Ene 2022'>",
+      "fechaInicio": "<start date, e.g. 'Jan 2022'>",
       "fechaFin": "<end date or empty if current>",
       "actual": <true if current job, false otherwise>,
       "bullets": ["<achievement or responsibility>", ...]
+    }
+  ],
+  "proyectos": [
+    {
+      "nombre": "<project name>",
+      "descripcion": "<brief description of what you built and the impact>",
+      "url": "<url or empty string>"
     }
   ],
   "educacion": [
@@ -66,18 +77,25 @@ Return exactly this structure:
       "logros": ["<notable achievement, if any>"]
     }
   ],
-  "habilidades": ["<skill or technology>", ...],
+  "habilidades": {
+    "languages":  ["<programming language>", ...],
+    "frameworks": ["<framework or library>", ...],
+    "databases":  ["<database>", ...],
+    "tools":      ["<tool, platform or technology>", ...],
+    "practices":  ["<methodology or practice>", ...]
+  },
   "idiomas": [
-    { "idioma": "<language>", "nivel": "<level, e.g. Nativo, B2, Avanzado>" }
+    { "idioma": "<language>", "nivel": "<level, e.g. Native, B2, Advanced>" }
   ]
 }
 
 Rules:
-- Use empty string "" for missing fields, empty array [] for missing lists.
-- Keep the original language of the CV.
+- Use empty string "" for missing text fields, empty array [] for missing lists.
+- Keep the original language of the CV for names and descriptions.
 - For experience bullets: keep them as-is, extracted faithfully from the CV.
 - Order experience from most recent to oldest.
-- Skills: list them individually (no grouping), deduplicate.
+- Skills: categorize each skill into the most appropriate group. Deduplicate.
+- Projects: extract any personal, open-source or notable side projects. Leave array empty if none.
 
 CV TEXT:
 ---
@@ -94,9 +112,8 @@ Rewrite and enhance the CV content to apply those recommendations while respecti
 STRICT RULES:
 - DO NOT invent new experience, education, certifications or dates.
 - DO NOT change personal info (nombre, email, telefono, linkedin, ubicacion, website).
-- DO improve the "resumen" to be more keyword-rich and ATS-friendly based on the recommendations.
 - DO improve experience "bullets" to be more quantified, action-verb-led and keyword-rich.
-- DO add missing skills from the recommendations to the "habilidades" array (only real skills, not soft skills).
+- DO add missing skills from the recommendations to the appropriate "habilidades" category (only real skills, not soft skills).
 - DO keep the original language of the CV.
 - NEVER concatenate adjacent string fields. Always preserve spaces and separators between empresa, cargo, fechaInicio and fechaFin.
 - Return ONLY valid JSON with the exact same structure as the input — no markdown, no extra text.
@@ -115,6 +132,7 @@ Return the improved CV as JSON with the exact same structure.
 function genId() { return Math.random().toString(36).slice(2, 9) }
 
 function hydrateCVData(raw: RawCVData): CVData {
+  const skills = raw.habilidades ?? EMPTY_SKILLS
   return {
     personalInfo: raw.personalInfo ?? {
       nombre: '', cargo: '', email: '', telefono: '',
@@ -122,9 +140,16 @@ function hydrateCVData(raw: RawCVData): CVData {
     },
     resumen: raw.resumen ?? '',
     experiencia: (raw.experiencia ?? []).map(e => ({ ...e, id: genId() })),
+    proyectos:   (raw.proyectos ?? []).map(p => ({ ...p, id: genId(), url: p.url ?? '' })),
     educacion:   (raw.educacion ?? []).map(e => ({ ...e, id: genId() })),
-    habilidades: raw.habilidades ?? [],
-    idiomas:     (raw.idiomas ?? []).map(l => ({ ...l, id: genId() })),
+    habilidades: {
+      languages:  skills.languages  ?? [],
+      frameworks: skills.frameworks ?? [],
+      databases:  skills.databases  ?? [],
+      tools:      skills.tools      ?? [],
+      practices:  skills.practices  ?? [],
+    },
+    idiomas: (raw.idiomas ?? []).map(l => ({ ...l, id: genId() })),
   }
 }
 
@@ -149,18 +174,17 @@ export async function improveCVWithSuggestions(
   cvData: CVData,
   suggestions: Suggestion[],
 ): Promise<CVData> {
-  // Strip IDs before sending to Gemini (cleaner prompt)
   const raw: RawCVData = {
     personalInfo: cvData.personalInfo,
     resumen:      cvData.resumen,
     experiencia:  cvData.experiencia.map(({ id: _id, ...rest }) => rest),
+    proyectos:    cvData.proyectos.map(({ id: _id, ...rest }) => rest),
     educacion:    cvData.educacion.map(({ id: _id, ...rest }) => rest),
     habilidades:  cvData.habilidades,
     idiomas:      cvData.idiomas.map(({ id: _id, ...rest }) => rest),
   }
   const result = await withGeminiRetry(() => model.generateContent(IMPROVE_PROMPT(raw, suggestions)))
   const improved = parseGeminiJson(result.response.text())
-  // Preserve personal info exactly (Gemini should not change it, but just in case)
   improved.personalInfo = raw.personalInfo
   return hydrateCVData(improved)
 }

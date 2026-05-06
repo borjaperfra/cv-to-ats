@@ -1,8 +1,8 @@
-﻿'use client'
+'use client'
 
 import { useState, useCallback, useEffect } from 'react'
 import dynamic from 'next/dynamic'
-import type { CVData, ExperienciaEntry, EducacionEntry, IdiomaEntry } from '@/types/cv'
+import type { CVData, ExperienciaEntry, EducacionEntry, IdiomaEntry, ProyectoEntry, SkillCategories } from '@/types/cv'
 import type { ATSAnalysisResult, Suggestion } from '@/types/analysis'
 import Header from '@/components/Header'
 import { EMPTY_CV, DEMO_CV } from '@/types/cv'
@@ -13,35 +13,49 @@ const LABELS = {
   es: {
     personalInfo: 'Información personal', nombre: 'Nombre completo', cargo: 'Título profesional',
     email: 'Email', telefono: 'Teléfono', linkedin: 'LinkedIn', ubicacion: 'Ubicación',
-    website: 'Web / Portfolio', resumenSection: 'Resumen profesional', resumenField: 'Resumen',
+    website: 'Web / Portfolio',
     experiencia: 'Experiencia', educacion: 'Educación', habilidades: 'Habilidades', idiomas: 'Idiomas',
+    proyectos: 'Proyectos',
     posicion: 'Posición', formacion: 'Formación', cargoField: 'Cargo', empresa: 'Empresa',
     fechaInicio: 'Fecha inicio', fechaFin: 'Fecha fin', actual: 'Trabajo actual',
     logros: 'Logros y responsabilidades', logrosEdu: 'Logros destacados (opcional)',
     institucion: 'Institución', titulo: 'Título', campo: 'Campo de estudio',
     idioma: 'Idioma', nivel: 'Nivel', addExp: 'Añadir experiencia', addEdu: 'Añadir educación',
-    addIdioma: 'Añadir idioma', addSkill: 'Añadir', addBullet: '+ Añadir punto',
-    addLogro: '+ Añadir logro', skillPlaceholder: 'React, Python, SQL... (Enter para añadir)',
-    preview: 'Vista previa · Plantilla Harvard',
+    addIdioma: 'Añadir idioma', addProyecto: 'Añadir proyecto',
+    addSkill: 'Añadir', addBullet: '+ Añadir punto',
+    addLogro: '+ Añadir logro', skillPlaceholder: 'Escribe y pulsa Enter',
+    preview: 'Vista previa',
     foto: 'Foto de perfil', fotoHint: 'PNG o JPG · máx. 2 MB · formato cuadrado recomendado',
     fotoRemove: 'Eliminar foto',
+    proyectoNombre: 'Nombre del proyecto', proyectoDesc: 'Descripción', proyectoUrl: 'URL / GitHub',
+    proyecto: 'Proyecto',
   },
   en: {
     personalInfo: 'Personal information', nombre: 'Full name', cargo: 'Professional title',
     email: 'Email', telefono: 'Phone', linkedin: 'LinkedIn', ubicacion: 'Location',
-    website: 'Website / Portfolio', resumenSection: 'Professional summary', resumenField: 'Summary',
+    website: 'Website / Portfolio',
     experiencia: 'Experience', educacion: 'Education', habilidades: 'Skills', idiomas: 'Languages',
+    proyectos: 'Projects',
     posicion: 'Position', formacion: 'Education entry', cargoField: 'Job title', empresa: 'Company',
     fechaInicio: 'Start date', fechaFin: 'End date', actual: 'Current job',
     logros: 'Achievements and responsibilities', logrosEdu: 'Notable achievements (optional)',
     institucion: 'Institution', titulo: 'Degree', campo: 'Field of study',
     idioma: 'Language', nivel: 'Level', addExp: 'Add experience', addEdu: 'Add education',
-    addIdioma: 'Add language', addSkill: 'Add', addBullet: '+ Add bullet',
-    addLogro: '+ Add achievement', skillPlaceholder: 'React, Python, SQL... (Enter to add)',
-    preview: 'Preview · Harvard template',
+    addIdioma: 'Add language', addProyecto: 'Add project',
+    addSkill: 'Add', addBullet: '+ Add bullet',
+    addLogro: '+ Add achievement', skillPlaceholder: 'Type and press Enter',
+    preview: 'Preview',
     foto: 'Profile photo', fotoHint: 'PNG or JPG · max. 2 MB · square format recommended',
     fotoRemove: 'Remove photo',
+    proyectoNombre: 'Project name', proyectoDesc: 'Description', proyectoUrl: 'URL / GitHub',
+    proyecto: 'Project',
   },
+}
+
+const SKILL_KEYS: (keyof SkillCategories)[] = ['languages', 'frameworks', 'databases', 'tools', 'practices']
+const SKILL_LABELS: Record<keyof SkillCategories, string> = {
+  languages: 'Languages', frameworks: 'Frameworks', databases: 'Databases',
+  tools: 'Technologies / Tools', practices: 'Practices',
 }
 
 const HarvardTemplate = dynamic(() => import('@/components/editor/HarvardTemplate'), { ssr: false })
@@ -110,11 +124,18 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 const DRAFT_KEY = 'cv-editor-draft'
 
 function wordCount(cv: CVData): number {
+  const skillWords = [
+    ...cv.habilidades.languages,
+    ...cv.habilidades.frameworks,
+    ...cv.habilidades.databases,
+    ...cv.habilidades.tools,
+    ...cv.habilidades.practices,
+  ]
   return [
-    cv.resumen,
     ...cv.experiencia.map(e => `${e.cargo} ${e.empresa} ${e.bullets.join(' ')}`),
+    ...cv.proyectos.map(p => `${p.nombre} ${p.descripcion}`),
     ...cv.educacion.map(e => `${e.titulo} ${e.institucion} ${e.logros.join(' ')}`),
-    cv.habilidades,
+    ...skillWords,
     ...cv.idiomas.map(l => l.idioma),
   ].join(' ').split(/\s+/).filter(Boolean).length
 }
@@ -139,11 +160,16 @@ export default function EditorPage() {
   useEffect(() => {
     setLang(getLang())
 
-    // Always restore the persisted draft first so the editor is never empty on return
     const draft = localStorage.getItem(DRAFT_KEY)
     if (draft) {
       try {
-        setCv(JSON.parse(draft))
+        const parsed = JSON.parse(draft) as CVData
+        // Migrate legacy flat habilidades array → SkillCategories
+        if (Array.isArray(parsed.habilidades)) {
+          parsed.habilidades = { languages: parsed.habilidades as unknown as string[], frameworks: [], databases: [], tools: [], practices: [] }
+        }
+        if (!parsed.proyectos) parsed.proyectos = []
+        setCv(parsed)
         setSavedAt(new Date())
       } catch { /* ignore */ }
     }
@@ -186,7 +212,6 @@ export default function EditorPage() {
       setCv(data as CVData)
       setCvLoaded(true)
       setDetectedCvText(null)
-      // Clear sessionStorage so the import banner doesn't reappear on next visit
       sessionStorage.removeItem('atsCvText')
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : 'Error inesperado.')
@@ -208,14 +233,12 @@ export default function EditorPage() {
       })
       const data = await res.json() as CVData
       if (!res.ok) throw new Error((data as unknown as { error: string }).error || 'Error al aplicar las recomendaciones.')
-      // Count changes between old and new CV
       const bulletChanges = prevCv.experiencia.reduce((sum, exp, i) => {
         const newExp = data.experiencia[i]
         if (!newExp) return sum
         return sum + exp.bullets.filter((b, bi) => b !== (newExp.bullets[bi] ?? '')).length
       }, 0)
-      const resumenChanged = prevCv.resumen !== data.resumen ? 1 : 0
-      setChangesApplied(bulletChanges + resumenChanged)
+      setChangesApplied(bulletChanges)
       setCv(data)
       setDetectedResult(null)
     } catch (err) {
@@ -243,6 +266,17 @@ export default function EditorPage() {
   }))
   const removeExp = (id: string) => setCv(prev => ({ ...prev, experiencia: prev.experiencia.filter(e => e.id !== id) }))
 
+  // ─ Projects ─
+  const addProyecto = () => setCv(prev => ({
+    ...prev,
+    proyectos: [...prev.proyectos, { id: genId(), nombre: '', descripcion: '', url: '' }],
+  }))
+  const updateProyecto = (id: string, patch: Partial<ProyectoEntry>) => setCv(prev => ({
+    ...prev,
+    proyectos: prev.proyectos.map(p => p.id === id ? { ...p, ...patch } : p),
+  }))
+  const removeProyecto = (id: string) => setCv(prev => ({ ...prev, proyectos: prev.proyectos.filter(p => p.id !== id) }))
+
   // ─ Education ─
   const addEdu = () => setCv(prev => ({
     ...prev,
@@ -258,12 +292,17 @@ export default function EditorPage() {
   const removeEdu = (id: string) => setCv(prev => ({ ...prev, educacion: prev.educacion.filter(e => e.id !== id) }))
 
   // ─ Skills ─
-  const [skillInput, setSkillInput] = useState('')
-  const addSkill = () => {
-    const trimmed = skillInput.trim()
+  const [skillInputs, setSkillInputs] = useState<Record<keyof SkillCategories, string>>({
+    languages: '', frameworks: '', databases: '', tools: '', practices: '',
+  })
+  const addSkill = (cat: keyof SkillCategories) => {
+    const trimmed = skillInputs[cat].trim()
     if (!trimmed) return
-    setCv(prev => ({ ...prev, habilidades: [...prev.habilidades, trimmed] }))
-    setSkillInput('')
+    setCv(prev => ({ ...prev, habilidades: { ...prev.habilidades, [cat]: [...prev.habilidades[cat], trimmed] } }))
+    setSkillInputs(prev => ({ ...prev, [cat]: '' }))
+  }
+  const removeSkill = (cat: keyof SkillCategories, idx: number) => {
+    setCv(prev => ({ ...prev, habilidades: { ...prev.habilidades, [cat]: prev.habilidades[cat].filter((_, i) => i !== idx) } }))
   }
 
   // ─ Languages ─
@@ -277,11 +316,7 @@ export default function EditorPage() {
   }))
   const removeIdioma = (id: string) => setCv(prev => ({ ...prev, idiomas: prev.idiomas.filter(l => l.id !== id) }))
 
-  // ─ Exports ─
-  // Renders a text-based PDF directly from the cv data object using jsPDF's text API.
-  // This produces a real text layer so the PDF is parseable by ATS systems and by
-  // our own /api/analyze route (pdf-parse). Image-based PDFs (html2canvas) have no
-  // text layer and cannot be re-analyzed.
+  // ─ PDF Export ─
   const handlePdfExport = async () => {
     setExportingPdf(true)
     try {
@@ -290,23 +325,19 @@ export default function EditorPage() {
       const W = 210, H = 297
       const mL = 20, mR = 20, mT = 18, mB = 20
       const cW = W - mL - mR
-      const LH = 5   // base line-height in mm (10 pt)
-      const LH9 = 4.5 // line-height for 9 pt
+      const LH = 5
+      const LH9 = 4.5
 
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
       let y = mT
 
-      // Adds a new page and resets y to top margin
       const newPage = () => { pdf.addPage(); y = mT }
-      // Ensures at least `mm` of vertical space remains; adds page if not
       const need = (mm: number) => { if (y + mm > H - mB) newPage() }
 
-      // Font shorthand helpers
-      const bold   = (n = 10) => { pdf.setFont('helvetica', 'bold');   pdf.setFontSize(n) }
-      const normal = (n = 10) => { pdf.setFont('helvetica', 'normal'); pdf.setFontSize(n) }
+      const bold   = (n = 10) => { pdf.setFont('helvetica', 'bold');    pdf.setFontSize(n) }
+      const normal = (n = 10) => { pdf.setFont('helvetica', 'normal');  pdf.setFontSize(n) }
       const italic = (n = 10) => { pdf.setFont('helvetica', 'oblique'); pdf.setFontSize(n) }
 
-      // Renders wrapped text at current y; advances y by the block height
       const textBlock = (text: string, x: number, maxW: number, lh = LH) => {
         const lines = pdf.splitTextToSize(text, maxW)
         need(lines.length * lh)
@@ -314,7 +345,6 @@ export default function EditorPage() {
         y += lines.length * lh
       }
 
-      // Section header: bold uppercase label + full-width rule beneath
       const sectionHeader = (title: string) => {
         need(12)
         bold(11)
@@ -326,8 +356,28 @@ export default function EditorPage() {
       }
 
       // ── Name ──────────────────────────────────────────────────────
-      bold(18)
-      pdf.text(cv.personalInfo.nombre || '', W / 2, y, { align: 'center' })
+      const nameParts = (cv.personalInfo.nombre || '').trim().split(/\s+/)
+      const pdfFirstName = nameParts.length > 2
+        ? nameParts.slice(0, -2).join(' ')
+        : (nameParts.length === 2 ? nameParts[0] : '')
+      const pdfLastNames = nameParts.length > 1
+        ? nameParts.slice(-2).join(' ')
+        : (nameParts[0] || '')
+
+      if (pdfFirstName && pdfLastNames) {
+        normal(18)
+        const fnW = pdf.getTextWidth(pdfFirstName + ' ')
+        bold(18)
+        const lnW = pdf.getTextWidth(pdfLastNames)
+        const startX = W / 2 - (fnW + lnW) / 2
+        normal(18)
+        pdf.text(pdfFirstName + ' ', startX, y)
+        bold(18)
+        pdf.text(pdfLastNames, startX + fnW, y)
+      } else {
+        bold(18)
+        pdf.text(pdfLastNames || cv.personalInfo.nombre || '', W / 2, y, { align: 'center' })
+      }
       y += 8
 
       if (cv.personalInfo.cargo) {
@@ -342,7 +392,7 @@ export default function EditorPage() {
       ].filter(Boolean)
       if (contact.length) {
         normal(9)
-        pdf.text(contact.join(' \u00b7 '), W / 2, y, { align: 'center' })
+        pdf.text(contact.join(' · '), W / 2, y, { align: 'center' })
         y += 5
       }
 
@@ -350,46 +400,57 @@ export default function EditorPage() {
       pdf.line(mL, y, W - mR, y)
       y += 5
 
-      const pdfL = lang === 'en'
-        ? { summary: 'Summary', skills: 'Skills', experience: 'Experience', education: 'Education', languages: 'Languages', present: 'Present' }
-        : { summary: 'Resumen', skills: 'Habilidades', experience: 'Experiencia', education: 'Educación', languages: 'Idiomas', present: 'Presente' }
+      // ── Skills ────────────────────────────────────────────────────
+      const skillRows = [
+        { label: 'Languages',           items: cv.habilidades.languages },
+        { label: 'Frameworks',          items: cv.habilidades.frameworks },
+        { label: 'Databases',           items: cv.habilidades.databases },
+        { label: 'Technologies / Tools',items: cv.habilidades.tools },
+        { label: 'Practices',           items: cv.habilidades.practices },
+      ].filter(r => r.items.length > 0)
 
-      // ── Resumen ───────────────────────────────────────────────────
-      if (cv.resumen) {
-        sectionHeader(pdfL.summary)
-        normal(10)
-        textBlock(cv.resumen, mL, cW)
+      if (skillRows.length > 0) {
+        sectionHeader('Skills')
+        for (const row of skillRows) {
+          need(LH9)
+          bold(9.5)
+          const prefix = `${row.label}: `
+          const prefixW = pdf.getTextWidth(prefix)
+          pdf.text(prefix, mL, y)
+          normal(9.5)
+          const valueText = row.items.join(', ')
+          const valueLines = pdf.splitTextToSize(valueText, cW - prefixW)
+          pdf.text(valueLines[0], mL + prefixW, y)
+          y += LH9
+          for (let i = 1; i < valueLines.length; i++) {
+            need(LH9)
+            pdf.text(valueLines[i], mL + prefixW, y)
+            y += LH9
+          }
+        }
         y += 2
       }
 
-      // ── Habilidades ───────────────────────────────────────────────
-      if (cv.habilidades.length > 0) {
-        sectionHeader(pdfL.skills)
-        normal(10)
-        textBlock(cv.habilidades.join(', '), mL, cW)
-        y += 2
-      }
-
-      // ── Experiencia ───────────────────────────────────────────────
+      // ── Experience ────────────────────────────────────────────────
       if (cv.experiencia.length > 0) {
-        sectionHeader(pdfL.experience)
+        sectionHeader('Experience')
         for (const exp of cv.experiencia) {
           const period = exp.actual
-            ? `${exp.fechaInicio} \u2013 ${pdfL.present}`
-            : `${exp.fechaInicio} \u2013 ${exp.fechaFin}`
+            ? `${exp.fechaInicio} – Present`
+            : `${exp.fechaInicio} – ${exp.fechaFin}`
           need(LH + 2)
-
           bold(10)
-          pdf.text(exp.cargo, mL, y)
+          pdf.text(exp.empresa || '', mL, y)
           normal(9)
           pdf.text(period, W - mR, y, { align: 'right' })
           y += LH
-          const meta = [exp.empresa, exp.ubicacion].filter(Boolean).join(' · ')
-          if (meta) { normal(9); pdf.text(meta, mL, y); y += LH9 }
+          const roleMeta = [exp.cargo, exp.ubicacion].filter(Boolean).join(' · ')
+          if (roleMeta) { italic(9); pdf.text(roleMeta, mL, y); y += LH9 }
+          normal(10)
           for (const b of exp.bullets.filter(Boolean)) {
             const lines = pdf.splitTextToSize(b, cW - 4)
             need(lines.length * LH)
-            pdf.text('\u2022', mL, y)
+            pdf.text('•', mL, y)
             pdf.text(lines, mL + 4, y)
             y += lines.length * LH
           }
@@ -397,31 +458,44 @@ export default function EditorPage() {
         }
       }
 
-      // ── Educación ─────────────────────────────────────────────────
+      // ── Projects ──────────────────────────────────────────────────
+      if (cv.proyectos.length > 0) {
+        sectionHeader('Projects')
+        for (const proj of cv.proyectos) {
+          need(LH + 2)
+          bold(10)
+          pdf.text(proj.nombre || '', mL, y)
+          if (proj.url) {
+            normal(8.5)
+            pdf.text(proj.url, W - mR, y, { align: 'right' })
+          }
+          y += LH
+          if (proj.descripcion) {
+            normal(10)
+            textBlock(proj.descripcion, mL, cW)
+          }
+          y += 2
+        }
+      }
+
+      // ── Education ─────────────────────────────────────────────────
       if (cv.educacion.length > 0) {
-        sectionHeader(pdfL.education)
+        sectionHeader('Education')
         for (const edu of cv.educacion) {
-          const period = `${edu.fechaInicio} \u2013 ${edu.fechaFin}`
+          const period = `${edu.fechaInicio} – ${edu.fechaFin}`
           const degree = [edu.titulo, edu.campo].filter(Boolean).join(', ')
           need(LH + 2)
-
           bold(10)
-          pdf.text(degree || 'T\u00edtulo', mL, y)
+          pdf.text(edu.institucion || '', mL, y)
           normal(9)
           pdf.text(period, W - mR, y, { align: 'right' })
           y += LH
-
-          if (edu.institucion) {
-            normal(9)
-            pdf.text(edu.institucion, mL, y)
-            y += LH9
-          }
-
+          if (degree) { italic(9); pdf.text(degree, mL, y); y += LH9 }
           normal(10)
           for (const l of edu.logros.filter(Boolean)) {
             const lines = pdf.splitTextToSize(l, cW - 4)
             need(lines.length * LH)
-            pdf.text('\u2022', mL, y)
+            pdf.text('•', mL, y)
             pdf.text(lines, mL + 4, y)
             y += lines.length * LH
           }
@@ -429,9 +503,9 @@ export default function EditorPage() {
         }
       }
 
-      // ── Idiomas ───────────────────────────────────────────────────
+      // ── Languages (spoken) ────────────────────────────────────────
       if (cv.idiomas.length > 0) {
-        sectionHeader(pdfL.languages)
+        sectionHeader('Languages')
         for (const idioma of cv.idiomas) {
           need(LH)
           bold(10)
@@ -494,7 +568,7 @@ export default function EditorPage() {
         </div>
       </section>
 
-      {/* Two-column layout — each column scrolls independently */}
+      {/* Two-column layout */}
       <div className="max-w-7xl mx-auto px-4 flex gap-6" style={{ height: 'calc(100vh - 64px)' }}>
 
         {/* ─── LEFT: Form ─── */}
@@ -791,12 +865,48 @@ export default function EditorPage() {
             </div>
           </Section>
 
-          {/* Summary */}
-          <Section title={LABELS[lang].resumenSection}>
-            <Field label={LABELS[lang].resumenField} value={cv.resumen}
-              onChange={v => setCv(prev => ({ ...prev, resumen: v }))}
-              placeholder="Escribe un resumen conciso de tu perfil profesional..."
-              multiline rows={4} />
+          {/* Skills */}
+          <Section title={LABELS[lang].habilidades}>
+            <div className="space-y-4">
+              {SKILL_KEYS.map(cat => (
+                <div key={cat}>
+                  <p className="font-sans font-[700] text-xs uppercase tracking-wider mb-1.5" style={{ color: '#374151' }}>
+                    {SKILL_LABELS[cat]}
+                  </p>
+                  <div className="flex flex-wrap gap-1.5 min-h-[32px] mb-2">
+                    {cv.habilidades[cat].map((skill, i) => (
+                      <span key={i}
+                        className="flex items-center gap-1 font-sans text-sm px-2.5 py-1 rounded-full"
+                        style={{ backgroundColor: '#e6f7f7', color: '#0DA1A4' }}>
+                        {skill}
+                        <button onClick={() => removeSkill(cat, i)}
+                          className="text-teal/50 hover:text-teal transition-colors duration-200">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={skillInputs[cat]}
+                      onChange={e => setSkillInputs(prev => ({ ...prev, [cat]: e.target.value }))}
+                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addSkill(cat) } }}
+                      placeholder={LABELS[lang].skillPlaceholder}
+                      className="flex-1 font-sans text-sm rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal/30 transition-all"
+                      style={{ borderColor: '#e5e7eb', color: '#1a2744' }}
+                    />
+                    <button onClick={() => addSkill(cat)}
+                      className="px-3 py-2 rounded-lg font-sans font-[700] text-xs uppercase tracking-wider text-white transition-all hover:opacity-80 duration-200"
+                      style={{ backgroundColor: '#0DA1A4' }}>
+                      {LABELS[lang].addSkill}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </Section>
 
           {/* Experience */}
@@ -808,12 +918,12 @@ export default function EditorPage() {
                   <RemoveButton onClick={() => removeExp(exp.id)} />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <Field label={LABELS[lang].cargoField} value={exp.cargo} onChange={v => updateExp(exp.id, { cargo: v })} placeholder="Software Engineer" />
                   <Field label={LABELS[lang].empresa} value={exp.empresa} onChange={v => updateExp(exp.id, { empresa: v })} placeholder="Acme Corp" />
-                  <Field label={LABELS[lang].fechaInicio} value={exp.fechaInicio} onChange={v => updateExp(exp.id, { fechaInicio: v })} placeholder="Ene 2022" />
-                  <Field label={LABELS[lang].fechaFin} value={exp.fechaFin} onChange={v => updateExp(exp.id, { fechaFin: v })} placeholder="Dic 2024" />
+                  <Field label={LABELS[lang].cargoField} value={exp.cargo} onChange={v => updateExp(exp.id, { cargo: v })} placeholder="Software Engineer" />
+                  <Field label={LABELS[lang].fechaInicio} value={exp.fechaInicio} onChange={v => updateExp(exp.id, { fechaInicio: v })} placeholder="Jan 2022" />
+                  <Field label={LABELS[lang].fechaFin} value={exp.fechaFin} onChange={v => updateExp(exp.id, { fechaFin: v })} placeholder="Dec 2024" />
                   <div className="col-span-2">
-                    <Field label={LABELS[lang].ubicacion} value={exp.ubicacion} onChange={v => updateExp(exp.id, { ubicacion: v })} placeholder="Madrid, España" />
+                    <Field label={LABELS[lang].ubicacion} value={exp.ubicacion} onChange={v => updateExp(exp.id, { ubicacion: v })} placeholder="Madrid, Spain" />
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -861,6 +971,23 @@ export default function EditorPage() {
             <AddButton label={LABELS[lang].addExp} onClick={addExp} />
           </Section>
 
+          {/* Projects */}
+          <Section title={LABELS[lang].proyectos}>
+            {cv.proyectos.map((proj, idx) => (
+              <div key={proj.id} className="space-y-3 pt-3 border-t border-gray-100 first:border-0 first:pt-0">
+                <div className="flex items-center justify-between">
+                  <p className="font-sans font-[700] text-xs text-gray-500">{LABELS[lang].proyecto} {idx + 1}</p>
+                  <RemoveButton onClick={() => removeProyecto(proj.id)} />
+                </div>
+                <Field label={LABELS[lang].proyectoNombre} value={proj.nombre} onChange={v => updateProyecto(proj.id, { nombre: v })} placeholder="Open Toponym" />
+                <Field label={LABELS[lang].proyectoDesc} value={proj.descripcion} onChange={v => updateProyecto(proj.id, { descripcion: v })}
+                  placeholder="Brief description of what you built and the impact..." multiline rows={3} />
+                <Field label={LABELS[lang].proyectoUrl} value={proj.url} onChange={v => updateProyecto(proj.id, { url: v })} placeholder="github.com/user/project" />
+              </div>
+            ))}
+            <AddButton label={LABELS[lang].addProyecto} onClick={addProyecto} />
+          </Section>
+
           {/* Education */}
           <Section title={LABELS[lang].educacion}>
             {cv.educacion.map((edu, idx) => (
@@ -873,8 +1000,8 @@ export default function EditorPage() {
                   <div className="col-span-2">
                     <Field label={LABELS[lang].institucion} value={edu.institucion} onChange={v => updateEdu(edu.id, { institucion: v })} placeholder="Universidad Complutense" />
                   </div>
-                  <Field label={LABELS[lang].titulo} value={edu.titulo} onChange={v => updateEdu(edu.id, { titulo: v })} placeholder="Grado en Ingeniería" />
-                  <Field label={LABELS[lang].campo} value={edu.campo} onChange={v => updateEdu(edu.id, { campo: v })} placeholder="Informática" />
+                  <Field label={LABELS[lang].titulo} value={edu.titulo} onChange={v => updateEdu(edu.id, { titulo: v })} placeholder="B.Sc. Computer Science" />
+                  <Field label={LABELS[lang].campo} value={edu.campo} onChange={v => updateEdu(edu.id, { campo: v })} placeholder="Software Engineering" />
                   <Field label={LABELS[lang].fechaInicio} value={edu.fechaInicio} onChange={v => updateEdu(edu.id, { fechaInicio: v })} placeholder="2016" />
                   <Field label={LABELS[lang].fechaFin} value={edu.fechaFin} onChange={v => updateEdu(edu.id, { fechaFin: v })} placeholder="2020" />
                 </div>
@@ -891,7 +1018,7 @@ export default function EditorPage() {
                             logros[li] = e.target.value
                             updateEdu(edu.id, { logros })
                           }}
-                          placeholder="Premio, distinción, TFG destacado..."
+                          placeholder="GPA, awards, thesis..."
                           className="flex-1 font-sans text-sm rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal/30 transition-all"
                           style={{ borderColor: '#e5e7eb', color: '#1a2744' }}
                         />
@@ -916,51 +1043,17 @@ export default function EditorPage() {
             <AddButton label={LABELS[lang].addEdu} onClick={addEdu} />
           </Section>
 
-          {/* Skills */}
-          <Section title={LABELS[lang].habilidades}>
-            <div className="flex flex-wrap gap-2 min-h-[40px]">
-              {cv.habilidades.map((skill, i) => (
-                <span key={i}
-                  className="flex items-center gap-1.5 font-sans text-sm px-3 py-1.5 rounded-full"
-                  style={{ backgroundColor: '#e6f7f7', color: '#0DA1A4' }}>
-                  {skill}
-                  <button onClick={() => setCv(prev => ({ ...prev, habilidades: prev.habilidades.filter((_, idx) => idx !== i) }))}
-                    className="text-teal/50 hover:text-teal transition-colors duration-200">
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </span>
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <input
-                type="text" value={skillInput}
-                onChange={e => setSkillInput(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addSkill() } }}
-                placeholder={LABELS[lang].skillPlaceholder}
-                className="flex-1 font-sans text-sm rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal/30 transition-all"
-                style={{ borderColor: '#e5e7eb', color: '#1a2744' }}
-              />
-              <button onClick={addSkill}
-                className="px-4 py-2 rounded-lg font-sans font-[700] text-xs uppercase tracking-wider text-white transition-all hover:opacity-80 duration-200"
-                style={{ backgroundColor: '#0DA1A4' }}>
-                {LABELS[lang].addSkill}
-              </button>
-            </div>
-          </Section>
-
           {/* Languages */}
           <Section title={LABELS[lang].idiomas}>
             {cv.idiomas.map((l, idx) => (
               <div key={l.id} className="flex gap-3 items-end">
                 <div className="flex-1">
                   <Field label={idx === 0 ? LABELS[lang].idioma : ''} value={l.idioma}
-                    onChange={v => updateIdioma(l.id, { idioma: v })} placeholder="Español" />
+                    onChange={v => updateIdioma(l.id, { idioma: v })} placeholder="English" />
                 </div>
                 <div className="flex-1">
                   <Field label={idx === 0 ? LABELS[lang].nivel : ''} value={l.nivel}
-                    onChange={v => updateIdioma(l.id, { nivel: v })} placeholder="Nativo / B2 / Avanzado" />
+                    onChange={v => updateIdioma(l.id, { nivel: v })} placeholder="Native / B2 / Advanced" />
                 </div>
                 <div className="mb-0.5">
                   <RemoveButton onClick={() => removeIdioma(l.id)} />
@@ -978,7 +1071,7 @@ export default function EditorPage() {
             {LABELS[lang].preview}
           </p>
           <div style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.12)', borderRadius: 4, overflow: 'hidden' }}>
-            <HarvardTemplate data={cv} lang={lang} />
+            <HarvardTemplate data={cv} />
           </div>
         </div>
 
@@ -1003,7 +1096,7 @@ export default function EditorPage() {
         <div className="lg:hidden fixed inset-0 z-30 bg-black/50 overflow-auto p-4"
           onClick={() => setShowPreview(false)}>
           <div onClick={e => e.stopPropagation()} className="max-w-full overflow-x-auto">
-            <HarvardTemplate data={cv} lang={lang} />
+            <HarvardTemplate data={cv} />
           </div>
         </div>
       )}
