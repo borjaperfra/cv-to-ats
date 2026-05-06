@@ -78,11 +78,11 @@ Return exactly this structure:
     }
   ],
   "habilidades": {
-    "languages":  ["<programming language>", ...],
-    "frameworks": ["<framework or library>", ...],
-    "databases":  ["<database>", ...],
-    "tools":      ["<tool, platform or technology>", ...],
-    "practices":  ["<methodology or practice>", ...]
+    "languages":  ["Java", "Python", "TypeScript", "SQL", "HTML", "CSS", ...],
+    "frameworks": ["Spring", "React", "Angular", "Django", "Node.js", ...],
+    "databases":  ["MySQL", "PostgreSQL", "MongoDB", "Redis", "Neo4j", ...],
+    "tools":      ["Docker", "Git", "Jenkins", "Kafka", "AWS", "Maven", "Terraform", ...],
+    "practices":  ["Agile", "Scrum", "TDD", "CI/CD", "SOLID Principles", "Code Reviews", ...]
   },
   "idiomas": [
     { "idioma": "<language>", "nivel": "<level, e.g. Native, B2, Advanced>" }
@@ -94,8 +94,15 @@ Rules:
 - Keep the original language of the CV for names and descriptions.
 - For experience bullets: keep them as-is, extracted faithfully from the CV.
 - Order experience from most recent to oldest.
-- Skills: categorize each skill into the most appropriate group. Deduplicate.
 - Projects: extract any personal, open-source or notable side projects. Leave array empty if none.
+- Skills categorization — assign EVERY skill to exactly one category, never leave any uncategorized:
+  * languages:  programming, scripting and query languages only — Java, Python, TypeScript, JavaScript, Go, Rust, C++, SQL, HTML, CSS, PHP, Swift, Kotlin, Scala, R, Bash...
+  * frameworks: libraries, frameworks and runtimes — Spring, React, Angular, Vue, Django, FastAPI, Express, Next.js, .NET, Laravel, Flutter, Rails, Hibernate...
+  * databases:  database systems and data stores — MySQL, PostgreSQL, MongoDB, Redis, Neo4j, SQLite, Oracle, Cassandra, DynamoDB, Elasticsearch, BigQuery...
+  * tools:      DevOps, cloud, build, messaging, testing and other tools — Docker, Kubernetes, Git, Jenkins, Kafka, RabbitMQ, AWS, GCP, Azure, Maven, Gradle, Terraform, SonarQube, Jira, Postman, Linux...
+  * practices:  methodologies, processes and engineering practices — Agile, Scrum, Kanban, TDD, BDD, CI/CD, SOLID, DDD, Microservices, REST, Code Reviews, Pair Programming...
+  - When a skill fits multiple categories, choose the most specific one (e.g. "Spring" → frameworks, not tools).
+  - Never put all skills into a single category — always spread them across the relevant ones.
 
 CV TEXT:
 ---
@@ -113,7 +120,7 @@ STRICT RULES:
 - DO NOT invent new experience, education, certifications or dates.
 - DO NOT change personal info (nombre, email, telefono, linkedin, ubicacion, website).
 - DO improve experience "bullets" to be more quantified, action-verb-led and keyword-rich.
-- DO add missing skills from the recommendations to the appropriate "habilidades" category (only real skills, not soft skills).
+- DO add missing skills from the recommendations to the appropriate "habilidades" category (only real technical skills, not soft skills). Use the same categorization rules: languages=programming languages, frameworks=libraries/runtimes, databases=data stores, tools=DevOps/cloud/build tools, practices=methodologies.
 - DO keep the original language of the CV.
 - NEVER concatenate adjacent string fields. Always preserve spaces and separators between empresa, cargo, fechaInicio and fechaFin.
 - Return ONLY valid JSON with the exact same structure as the input — no markdown, no extra text.
