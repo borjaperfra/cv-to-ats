@@ -7,7 +7,7 @@ import type { ATSAnalysisResult, Suggestion } from '@/types/analysis'
 import Header from '@/components/Header'
 import { DEMO_CV } from '@/types/cv'
 import { exportToMarkdown } from '@/lib/export-markdown'
-import { getLang } from '@/components/LanguageSelector'
+import { getLang, type Lang } from '@/components/LanguageSelector'
 
 const LABELS = {
   es: {
@@ -182,6 +182,13 @@ export default function EditorPage() {
         try { setDetectedResult(JSON.parse(resultRaw) as ATSAnalysisResult) } catch { /* ignore */ }
       }
     }
+  }, [])
+
+  // Sync lang when user changes it from the header selector
+  useEffect(() => {
+    const handler = (e: Event) => setLang((e as CustomEvent<Lang>).detail)
+    window.addEventListener('langchange', handler)
+    return () => window.removeEventListener('langchange', handler)
   }, [])
 
   // Autosave draft on every change (debounced 800ms)

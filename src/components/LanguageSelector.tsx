@@ -29,6 +29,7 @@ export default function LanguageSelector({ showHint = false }: LanguageSelectorP
     if (l === lang) return
     localStorage.setItem(LANG_KEY, l)
     setLangState(l)
+    window.dispatchEvent(new CustomEvent('langchange', { detail: l }))
 
     if (showHint) {
       setHint(true)
