@@ -65,18 +65,23 @@ export default function Header({ noPrint = false }: HeaderProps) {
       <div className="max-w-container mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
 
         {/* Logo */}
-        <a href="/" className="flex items-center gap-2 hover:opacity-70 transition-opacity duration-200 flex-shrink-0">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-manfred.svg" alt="Manfred" className="h-6 sm:h-7 w-auto block" />
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <a href="https://getmanfred.com" target="_blank" rel="noopener noreferrer"
+            className="hover:opacity-70 transition-opacity duration-200">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo-manfred.svg" alt="Manfred" className="h-6 sm:h-7 w-auto block" />
+          </a>
           <span className="w-px h-5 bg-gray-light mx-1 sm:mx-2 self-center" />
-          <span className="font-sans font-[900] text-navy text-sm sm:text-base uppercase tracking-widest self-center leading-none">
-            ATS Killer
-          </span>
-          <span className="font-sans font-[700] text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-full self-center ml-1"
-            style={{ backgroundColor: '#01FFC6', color: '#092c64' }}>
-            Beta
-          </span>
-        </a>
+          <a href="/" className="flex items-center gap-1 hover:opacity-70 transition-opacity duration-200">
+            <span className="font-sans font-[900] text-navy text-sm sm:text-base uppercase tracking-widest self-center leading-none">
+              ATS Killer
+            </span>
+            <span className="font-sans font-[700] text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-full self-center ml-1"
+              style={{ backgroundColor: '#01FFC6', color: '#092c64' }}>
+              Beta
+            </span>
+          </a>
+        </div>
 
         {/* CVs analyzed counter */}
         {cvsAnalyzed !== null && (

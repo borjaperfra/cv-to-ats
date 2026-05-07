@@ -428,31 +428,33 @@ export default function EditorPage() {
 
       const W = 210
       const H = 297
+      const MARGIN = 12  // mm — top/bottom breathing room on each page
       const pxPerMm = canvas.width / W
-      const pageHeightPx = H * pxPerMm
-      const totalPages = Math.max(1, Math.ceil(canvas.height / pageHeightPx))
+      const contentHeightPx = (H - MARGIN * 2) * pxPerMm
+      const totalPages = Math.max(1, Math.ceil(canvas.height / contentHeightPx))
+      const fullPagePx = Math.round(H * pxPerMm)
 
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
 
       for (let page = 0; page < totalPages; page++) {
         if (page > 0) pdf.addPage()
 
-        const srcY = page * pageHeightPx
-        const srcH = Math.min(pageHeightPx, canvas.height - srcY)
+        const srcY = page * contentHeightPx
+        const srcH = Math.min(contentHeightPx, canvas.height - srcY)
 
         const pageCanvas = document.createElement('canvas')
         pageCanvas.width = canvas.width
-        pageCanvas.height = srcH
+        pageCanvas.height = fullPagePx
         const ctx = pageCanvas.getContext('2d')!
         ctx.fillStyle = '#ffffff'
         ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height)
-        ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH)
+        ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, Math.round(MARGIN * pxPerMm), canvas.width, srcH)
 
         pdf.addImage(
           pageCanvas.toDataURL('image/jpeg', 0.95),
           'JPEG',
           0, 0,
-          W, srcH / pxPerMm,
+          W, H,
         )
       }
 
