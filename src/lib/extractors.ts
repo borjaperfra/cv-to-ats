@@ -26,10 +26,14 @@ async function extractFromPDFWithOCR(buffer: Buffer): Promise<string> {
   return result.response.text()
 }
 
-export async function extractFromPDF(buffer: Buffer): Promise<string> {
+export async function extractFromPDF(buffer: Buffer, maxPages?: number): Promise<string> {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const pdfParse = require('pdf-parse')
   const data = await pdfParse(buffer)
+
+  if (maxPages && data.numpages > maxPages) {
+    throw new Error(`El CV no puede tener más de ${maxPages} páginas. El tuyo tiene ${data.numpages}.`)
+  }
 
   if (data.text.trim().length >= 100) return data.text
 
@@ -43,9 +47,9 @@ export async function extractFromDOCX(buffer: Buffer): Promise<string> {
   return result.value
 }
 
-export async function extractCVText(buffer: Buffer, filename: string): Promise<string> {
+export async function extractCVText(buffer: Buffer, filename: string, maxPages?: number): Promise<string> {
   const ext = filename.split('.').pop()?.toLowerCase()
-  if (ext === 'pdf') return extractFromPDF(buffer)
+  if (ext === 'pdf') return extractFromPDF(buffer, maxPages)
   if (ext === 'docx' || ext === 'doc') return extractFromDOCX(buffer)
-  throw new Error(`Unsupported file type: .${ext}. Please upload a PDF or DOCX file.`)
+  throw new Error(`Formato no admitido: .${ext}. Por favor, sube un archivo PDF.`)
 }

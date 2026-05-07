@@ -5,15 +5,22 @@ import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
 import { getSupabase } from '@/lib/supabase'
 
 export const runtime = 'nodejs'
+export const maxDuration = 60
 
-const ALLOWED_TYPES = [
-  'application/pdf',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/msword',
-]
+const ALLOWED_TYPES = ['application/pdf']
+const MAX_SIZE_BYTES = 3 * 1024 * 1024   // 3 MB
+const MAX_PAGES      = 3
+const MAX_TEXT_CHARS = 60_000
+const ANALYSIS_TIMEOUT_MS = 50_000
 
-const MAX_SIZE_BYTES = 10 * 1024 * 1024  // 10 MB
-const MAX_TEXT_CHARS = 60_000            // ~30 pages of text — more than enough
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('El análisis tardó demasiado. Por favor, inténtalo de nuevo.')), ms)
+    ),
+  ])
+}
 
 function sanitizeError(error: unknown): string {
   // Never expose raw SDK / internal errors to the client
@@ -51,20 +58,20 @@ export async function POST(request: NextRequest) {
 
     if (!ALLOWED_TYPES.includes(file.type)) {
       return NextResponse.json(
-        { error: 'Formato no admitido. Por favor, sube un archivo PDF o DOCX.' },
+        { error: 'Solo se admiten archivos PDF.' },
         { status: 415 }
       )
     }
 
     if (file.size > MAX_SIZE_BYTES) {
       return NextResponse.json(
-        { error: 'El archivo supera el límite de 10 MB.' },
+        { error: 'El archivo supera el límite de 3 MB.' },
         { status: 413 }
       )
     }
 
     const buffer = Buffer.from(await file.arrayBuffer())
-    const cvText = await extractCVText(buffer, file.name)
+    const cvText = await extractCVText(buffer, file.name, MAX_PAGES)
 
     if (cvText.trim().length < 100) {
       return NextResponse.json(
@@ -107,7 +114,7 @@ export async function POST(request: NextRequest) {
     const cleanedCvText = PLATFORM_PATTERNS.reduce((t, re) => t.replace(re, ''), cvText).trim()
 
     const lang = (formData.get('lang') as string | null) === 'en' ? 'en' : 'es'
-    const result = await analyzeWithGemini(cleanedCvText, lang)
+    const result = await withTimeout(analyzeWithGemini(cleanedCvText, lang), ANALYSIS_TIMEOUT_MS)
     result.analyzedAt = new Date().toISOString()
 
     void (async () => { try { await getSupabase().rpc('increment_stat', { stat_id: 'cvs_analyzed' }) } catch {} })()

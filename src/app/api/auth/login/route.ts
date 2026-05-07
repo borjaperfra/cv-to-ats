@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
 
 export async function POST(request: NextRequest) {
+  const ip = getClientIp(request)
+  const { allowed, retryAfter } = checkRateLimit(`login:${ip}`, 5, 3 * 60_000)
+  if (!allowed) {
+    return NextResponse.json(
+      { error: 'Demasiados intentos. Espera unos minutos antes de volver a intentarlo.' },
+      { status: 429, headers: { 'Retry-After': String(retryAfter) } }
+    )
+  }
+
   const { username, password } = await request.json()
 
   const validUser = process.env.AUTH_USERNAME

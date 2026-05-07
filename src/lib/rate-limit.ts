@@ -21,16 +21,20 @@ if (typeof setInterval !== 'undefined') {
   }, 5 * 60_000)
 }
 
-export function checkRateLimit(ip: string): { allowed: boolean; retryAfter: number } {
+export function checkRateLimit(
+  key: string,
+  maxRequests = MAX_REQUESTS,
+  windowMs = WINDOW_MS
+): { allowed: boolean; retryAfter: number } {
   const now = Date.now()
-  const entry = store.get(ip)
+  const entry = store.get(key)
 
   if (!entry || entry.resetAt < now) {
-    store.set(ip, { count: 1, resetAt: now + WINDOW_MS })
+    store.set(key, { count: 1, resetAt: now + windowMs })
     return { allowed: true, retryAfter: 0 }
   }
 
-  if (entry.count >= MAX_REQUESTS) {
+  if (entry.count >= maxRequests) {
     return { allowed: false, retryAfter: Math.ceil((entry.resetAt - now) / 1000) }
   }
 

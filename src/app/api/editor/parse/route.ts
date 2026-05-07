@@ -1,19 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { parseCVToEditor, improveCVWithSuggestions } from '@/lib/gemini-editor'
+import { parseCVToEditor, improveCVWithSuggestions, translateCVContent } from '@/lib/gemini-editor'
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
 import type { CVData } from '@/types/cv'
 import type { Suggestion } from '@/types/analysis'
+import type { CvLang } from '@/lib/cv-labels'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
 
 export async function POST(req: NextRequest) {
+  const ip = getClientIp(req)
+  const { allowed, retryAfter } = checkRateLimit(`editor:${ip}`, 5)
+  if (!allowed) {
+    return NextResponse.json(
+      { error: 'Demasiadas solicitudes. Por favor, espera un momento antes de volver a intentarlo.' },
+      { status: 429, headers: { 'Retry-After': String(retryAfter) } }
+    )
+  }
+
   try {
     const body = await req.json()
-    const { mode, cvText, cvData, suggestions } = body as {
-      mode: 'parse' | 'improve'
+    const { mode, cvText, cvData, suggestions, targetLang } = body as {
+      mode: 'parse' | 'improve' | 'translate'
       cvText?: string
       cvData?: CVData
       suggestions?: Suggestion[]
+      targetLang?: CvLang
     }
 
     if (mode === 'parse') {
@@ -29,6 +41,14 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Faltan datos del CV o las recomendaciones.' }, { status: 400 })
       }
       const result = await improveCVWithSuggestions(cvData, suggestions)
+      return NextResponse.json(result)
+    }
+
+    if (mode === 'translate') {
+      if (!cvData || !targetLang) {
+        return NextResponse.json({ error: 'Faltan datos para la traducción.' }, { status: 400 })
+      }
+      const result = await translateCVContent(cvData, targetLang)
       return NextResponse.json(result)
     }
 

@@ -4,13 +4,11 @@ import { matchWithGemini } from '@/lib/gemini-match'
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
+export const maxDuration = 60
 
-const ALLOWED_TYPES = [
-  'application/pdf',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/msword',
-]
-const MAX_SIZE_BYTES = 10 * 1024 * 1024
+const ALLOWED_TYPES  = ['application/pdf']
+const MAX_SIZE_BYTES = 3 * 1024 * 1024
+const MAX_CV_PAGES   = 3
 const MAX_CV_CHARS   = 60_000
 const MAX_JD_CHARS   = 30_000
 
@@ -137,13 +135,13 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Se necesita el CV.' }, { status: 400 })
       }
       if (!ALLOWED_TYPES.includes(cvFile.type)) {
-        return NextResponse.json({ error: 'Formato de CV no admitido. Sube un PDF o DOCX.' }, { status: 415 })
+        return NextResponse.json({ error: 'Solo se admiten archivos PDF.' }, { status: 415 })
       }
       if (cvFile.size > MAX_SIZE_BYTES) {
-        return NextResponse.json({ error: 'El CV supera el límite de 10 MB.' }, { status: 413 })
+        return NextResponse.json({ error: 'El CV supera el límite de 3 MB.' }, { status: 413 })
       }
       const buffer = Buffer.from(await cvFile.arrayBuffer())
-      cvText = await extractCVText(buffer, cvFile.name)
+      cvText = await extractCVText(buffer, cvFile.name, MAX_CV_PAGES)
     }
 
     if (cvText.trim().length < 100) {
@@ -172,10 +170,10 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: 'Se necesita la oferta de trabajo.' }, { status: 400 })
         }
         if (!ALLOWED_TYPES.includes(jdFile.type)) {
-          return NextResponse.json({ error: 'Formato de oferta no admitido. Sube un PDF o DOCX.' }, { status: 415 })
+          return NextResponse.json({ error: 'Solo se admiten archivos PDF.' }, { status: 415 })
         }
         if (jdFile.size > MAX_SIZE_BYTES) {
-          return NextResponse.json({ error: 'La oferta supera el límite de 10 MB.' }, { status: 413 })
+          return NextResponse.json({ error: 'La oferta supera el límite de 3 MB.' }, { status: 413 })
         }
         const buffer = Buffer.from(await jdFile.arrayBuffer())
         jdText = await extractCVText(buffer, jdFile.name)
