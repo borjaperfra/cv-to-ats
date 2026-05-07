@@ -36,7 +36,7 @@ Required fields:
 
 - "headline": short technical phrase (max 15 words) about the ATS state of the CV. in the specified language.
 
-- "overallScore": number 0-100, weighted average of the categories.
+- "overallScore": number 0-100. Calculate as the exact weighted average of the 6 category scores using these fixed weights: Keywords & skills 30%, Format & parseability 25%, Work experience structure 20%, Education & certifications 10%, Contact information 10%, Length & file optimization 5%. Round to the nearest integer.
 
 - "categories": evaluate these 6 categories (name them in the specified language):
   1. Keywords & skills

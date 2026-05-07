@@ -32,7 +32,7 @@ Required fields:
 
 - "headline": short technical phrase (max 15 words) about the overall LinkedIn profile state. in the specified language.
 
-- "overallScore": number 0-100. Score the profile's overall quality and discoverability on LinkedIn.
+- "overallScore": number 0-100. Calculate as the exact weighted average of the 6 category scores using these fixed weights: Titular y propuesta de valor 25%, Resumen/About 20%, Experiencia y logros 25%, Habilidades y validaciones 15%, Formación y certificaciones 5%, Completitud y visibilidad 10%. Round to the nearest integer.
 
 - "completitud": number 0-100 estimating how complete the profile is (presence of photo mention, headline, about, experience with bullets, education, skills, recommendations, contact info).
 
@@ -61,7 +61,9 @@ Required fields:
 - "topPriorities": array of 3 concrete actions in the specified language (infinitive, gender-neutral).
 
 IMPORTANT:
-- Only flag real issues found in the provided text. Do not invent problems.
+- This is a LinkedIn profile analysis. Do NOT give CV or résumé advice. Do not comment on CV formatting, CV sections, or CV structure.
+- Only flag real issues found in the provided text. Do not invent problems or sections.
+- NEVER mention, suggest moving, or recommend adding a section that does not appear explicitly in the provided profile text. If there is no "Hobbies", "Interests", "Volunteer", or any other section in the text — do not mention it at all.
 - When flagging an issue, always include a direct quote (in quotes) from the profile text that supports the finding. Never make generic recommendations without citing specific text from the profile.
 - The overallScore must be based on objective criteria.
 - ALL generated text must be in the specified language.
