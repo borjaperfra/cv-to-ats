@@ -9,8 +9,6 @@ import Header from '@/components/Header'
 import { renderWithTerminos } from '@/lib/renderBold'
 import SuggestionCard from '@/components/results/SuggestionCard'
 
-const PRIORITY_ORDER: Record<string, number> = { alta: 0, media: 1, baja: 2 }
-
 function getScoreColor(score: number) {
   if (score >= 75) return { arc: '#0DA1A4', bg: '#e6f7f7', text: '#0DA1A4', label: 'Buen match' }
   if (score >= 50) return { arc: '#f59e0b', bg: '#fffbeb', text: '#d97706', label: 'Match parcial' }
@@ -109,9 +107,7 @@ export default function MatchResultsPage() {
 
   const colors = getScoreColor(result.matchScore)
   const dashOffset = animated ? CIRC * (1 - result.matchScore / 100) : CIRC
-  const sorted = [...result.sugerencias].sort(
-    (a, b) => (PRIORITY_ORDER[a.prioridad] ?? 1) - (PRIORITY_ORDER[b.prioridad] ?? 1)
-  )
+  const sorted = [...result.sugerencias]
 
   return (
     <div className="min-h-screen bg-bg-light">
@@ -222,6 +218,9 @@ export default function MatchResultsPage() {
                 <h2 className="font-sans font-[900] text-xl text-purple-dark">
                   Cómo mejorar tu match
                 </h2>
+                <p className="font-sans text-xs text-gray-400 mt-1">
+                  Tú decides por dónde empezar.
+                </p>
               </div>
               {sorted.map((s, i) => (
                 <div key={i} className="break-inside-avoid">

@@ -9,9 +9,9 @@ interface SuggestionCardProps {
 }
 
 const priorityConfig = {
-  alta:  { label: 'ALTA',  dot: '#ef4444', text: '#ef4444' },
-  media: { label: 'MEDIA', dot: '#f59e0b', text: '#d97706' },
-  baja:  { label: 'BAJA',  dot: '#10b981', text: '#059669' },
+  alta:  { label: 'alta',  dot: '#ef4444', text: '#9ca3af' },
+  media: { label: 'media', dot: '#f59e0b', text: '#9ca3af' },
+  baja:  { label: 'baja',  dot: '#10b981', text: '#9ca3af' },
 }
 
 function buildCopyText(titulo: string, pasos: Suggestion['pasos'], priorityLabel: string): string {
