@@ -480,7 +480,8 @@ export default function EditorPage() {
         const ctx = pageCanvas.getContext('2d')!
         ctx.fillStyle = '#ffffff'
         ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height)
-        ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, Math.round(MARGIN * pxPerMm), canvas.width, srcH)
+        const destY = page === 0 ? 0 : Math.round(MARGIN * pxPerMm)
+        ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, destY, canvas.width, srcH)
 
         pdf.addImage(
           pageCanvas.toDataURL('image/jpeg', 0.95),
