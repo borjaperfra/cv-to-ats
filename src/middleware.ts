@@ -1,18 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const PUBLIC_PATHS = ['/login', '/api/auth', '/api/og']
+const PROTECTED_PATHS = ['/admin']
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Allow public paths without auth
-  if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
+  // Only admin routes require authentication
+  if (!PROTECTED_PATHS.some((p) => pathname.startsWith(p))) {
     return NextResponse.next()
   }
 
   const secret = process.env.AUTH_SECRET
   if (!secret) {
-    // If no secret is configured, block everything
     return NextResponse.redirect(new URL('/login', request.url))
   }
 

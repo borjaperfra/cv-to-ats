@@ -2,12 +2,26 @@
 
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
-import LanguageSelector from './LanguageSelector'
+import LanguageSelector, { getLang, type Lang } from './LanguageSelector'
 
-const NAV_LINKS = [
-  { href: '/',          label: 'Analizar CV' },
-  { href: '/editor',    label: 'Editor CV' },
-]
+const LABELS = {
+  es: {
+    analyzeCV: 'Analizar CV',
+    cvEditor: 'Editor CV',
+    cvsAnalyzed: (n: string) => `${n} CVs analizados`,
+    language: 'Idioma',
+    openMenu: 'Abrir menú',
+    closeMenu: 'Cerrar menú',
+  },
+  en: {
+    analyzeCV: 'Analyse CV',
+    cvEditor: 'CV Editor',
+    cvsAnalyzed: (n: string) => `${n} CVs analysed`,
+    language: 'Language',
+    openMenu: 'Open menu',
+    closeMenu: 'Close menu',
+  },
+}
 
 function isActive(href: string, pathname: string): boolean {
   if (href === '/') return pathname === '/' || pathname.startsWith('/results')
@@ -22,13 +36,28 @@ export default function Header({ noPrint = false }: HeaderProps) {
   const pathname = usePathname()
   const [menuOpen, setMenuOpen] = useState(false)
   const [cvsAnalyzed, setCvsAnalyzed] = useState<number | null>(null)
+  const [lang, setLang] = useState<Lang>('es')
 
   useEffect(() => {
+    setLang(getLang())
     fetch('/api/stats')
       .then(r => r.json())
       .then(d => setCvsAnalyzed(d.cvs_analyzed))
       .catch(() => {})
   }, [])
+
+  useEffect(() => {
+    const handler = (e: Event) => setLang((e as CustomEvent<Lang>).detail)
+    window.addEventListener('langchange', handler)
+    return () => window.removeEventListener('langchange', handler)
+  }, [])
+
+  const L = LABELS[lang]
+
+  const navLinks = [
+    { href: '/',       label: L.analyzeCV },
+    { href: '/editor', label: L.cvEditor },
+  ]
 
   return (
     <header className={`bg-white border-b sticky top-0 z-10${noPrint ? ' no-print' : ''}`}
@@ -53,13 +82,13 @@ export default function Header({ noPrint = false }: HeaderProps) {
         {cvsAnalyzed !== null && (
           <span className="hidden sm:flex items-center gap-1.5 font-sans text-xs" style={{ color: '#9ca3af' }}>
             <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: '#01FFC6' }} />
-            {cvsAnalyzed.toLocaleString('es-ES')} CVs analizados
+            {L.cvsAnalyzed(cvsAnalyzed.toLocaleString('es-ES'))}
           </span>
         )}
 
         {/* Desktop nav */}
         <nav className="hidden sm:flex items-center gap-1">
-          {NAV_LINKS.map(link => (
+          {navLinks.map(link => (
             <a key={link.href} href={link.href}
               className="font-sans font-[700] text-xs uppercase tracking-wider px-3 py-1.5 rounded-lg transition-colors duration-200"
               style={isActive(link.href, pathname)
@@ -70,23 +99,15 @@ export default function Header({ noPrint = false }: HeaderProps) {
             </a>
           ))}
           <LanguageSelector showHint />
-          <button
-            onClick={async () => { await fetch('/api/auth/logout', { method: 'POST' }); window.location.href = '/login' }}
-            className="font-sans font-[700] text-xs uppercase tracking-wider px-3 py-1.5 rounded-lg transition-colors duration-200"
-            style={{ color: '#9ca3af' }}
-            title="Cerrar sesión"
-          >
-            Salir
-          </button>
         </nav>
 
-        {/* Mobile: only hamburger — language goes inside the dropdown */}
+        {/* Mobile: hamburger */}
         <div className="flex sm:hidden items-center">
           <button
             onClick={() => setMenuOpen(v => !v)}
             className="p-2 rounded-lg transition-colors duration-200"
             style={{ color: menuOpen ? '#0DA1A4' : '#9ca3af' }}
-            aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'}
+            aria-label={menuOpen ? L.closeMenu : L.openMenu}
           >
             {menuOpen ? (
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -104,7 +125,7 @@ export default function Header({ noPrint = false }: HeaderProps) {
       {/* Mobile dropdown */}
       {menuOpen && (
         <div className="sm:hidden bg-white border-t px-4 py-2 space-y-1" style={{ borderColor: '#f3f4f6' }}>
-          {NAV_LINKS.map(link => (
+          {navLinks.map(link => (
             <a
               key={link.href}
               href={link.href}
@@ -117,18 +138,10 @@ export default function Header({ noPrint = false }: HeaderProps) {
               {link.label}
             </a>
           ))}
-          {/* Language selector inside mobile menu */}
           <div className="px-3 py-3 flex items-center gap-3">
-            <span className="font-sans font-[700] text-xs uppercase tracking-wider text-gray-400">Idioma</span>
+            <span className="font-sans font-[700] text-xs uppercase tracking-wider text-gray-400">{L.language}</span>
             <LanguageSelector showHint />
           </div>
-          <button
-            onClick={async () => { await fetch('/api/auth/logout', { method: 'POST' }); window.location.href = '/login' }}
-            className="flex w-full items-center font-sans font-[700] text-sm uppercase tracking-wider px-3 py-3 rounded-xl transition-colors duration-200"
-            style={{ color: '#9ca3af' }}
-          >
-            Salir
-          </button>
         </div>
       )}
     </header>

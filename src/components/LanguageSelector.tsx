@@ -64,7 +64,7 @@ export default function LanguageSelector({ showHint = false }: LanguageSelectorP
           className="absolute top-full right-0 mt-2 z-50 whitespace-nowrap font-sans text-xs px-3 py-1.5 rounded-lg shadow-md"
           style={{ backgroundColor: '#1a2744', color: '#ffffff' }}
         >
-          Se aplicará al próximo análisis
+          {lang === 'en' ? 'Applied to the next analysis' : 'Se aplicará al próximo análisis'}
           {/* arrow */}
           <span
             className="absolute -top-1.5 right-4 w-0 h-0"

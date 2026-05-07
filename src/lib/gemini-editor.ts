@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import type { CVData, SkillCategories } from '@/types/cv'
 import type { Suggestion } from '@/types/analysis'
+import type { CvLang } from '@/lib/cv-labels'
 import { withGeminiRetry } from '@/lib/gemini-retry'
 
 if (!process.env.GEMINI_API_KEY) {
@@ -169,6 +170,36 @@ function parseGeminiJson(text: string): RawCVData {
   return JSON.parse(cleaned)
 }
 
+// ─── Translate CV content ─────────────────────────────────────────────────────
+
+const TRANSLATE_PROMPT = (cvData: RawCVData, targetLang: CvLang) => `
+You are a professional CV translator. Translate the CV content below to ${targetLang === 'en' ? 'English' : 'Spanish'}.
+
+STRICT RULES — translate ONLY these fields:
+- personalInfo.cargo
+- experiencia[].cargo
+- experiencia[].bullets[] (every bullet string)
+- proyectos[].descripcion
+- educacion[].titulo
+- educacion[].campo
+- educacion[].logros[] (every achievement string)
+
+DO NOT translate (keep byte-for-byte identical):
+- personalInfo.nombre, email, telefono, linkedin, ubicacion, website
+- experiencia[].empresa, experiencia[].ubicacion, experiencia[].fechaInicio, experiencia[].fechaFin, experiencia[].actual
+- educacion[].institucion, educacion[].fechaInicio, educacion[].fechaFin
+- proyectos[].nombre, proyectos[].url
+- habilidades (all skill arrays — technology names are universal)
+- idiomas (language names and levels)
+- resumen
+
+Keep proper nouns (product names, framework names, acronyms) unchanged even inside translated strings.
+Return ONLY valid JSON with the exact same structure as the input — no markdown, no extra text.
+
+CV JSON:
+${JSON.stringify(cvData, null, 2)}
+`.trim()
+
 // ─── Public functions ─────────────────────────────────────────────────────────
 
 export async function parseCVToEditor(cvText: string): Promise<CVData> {
@@ -194,4 +225,22 @@ export async function improveCVWithSuggestions(
   const improved = parseGeminiJson(result.response.text())
   improved.personalInfo = raw.personalInfo
   return hydrateCVData(improved)
+}
+
+export async function translateCVContent(cvData: CVData, targetLang: CvLang): Promise<CVData> {
+  const raw: RawCVData = {
+    personalInfo: cvData.personalInfo,
+    resumen:      cvData.resumen,
+    experiencia:  cvData.experiencia.map(({ id: _id, ...rest }) => rest),
+    proyectos:    cvData.proyectos.map(({ id: _id, ...rest }) => rest),
+    educacion:    cvData.educacion.map(({ id: _id, ...rest }) => rest),
+    habilidades:  cvData.habilidades,
+    idiomas:      cvData.idiomas.map(({ id: _id, ...rest }) => rest),
+  }
+  const result = await withGeminiRetry(() => model.generateContent(TRANSLATE_PROMPT(raw, targetLang)))
+  const translated = parseGeminiJson(result.response.text())
+  translated.personalInfo = raw.personalInfo
+  translated.habilidades = raw.habilidades
+  translated.idiomas = raw.idiomas
+  return hydrateCVData(translated)
 }
