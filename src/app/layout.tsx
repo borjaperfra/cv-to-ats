@@ -53,6 +53,35 @@ export const metadata: Metadata = {
   },
 }
 
+function Footer() {
+  return (
+    <footer className="no-print border-t py-8 px-6" style={{ borderColor: '#e5e0d8', backgroundColor: '#f0ede8' }}>
+      <div className="max-w-3xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+        <div className="space-y-1.5">
+          <p className="font-sans font-[700] text-xs uppercase tracking-widest" style={{ color: '#092c64' }}>
+            Una herramienta gratuita de{' '}
+            <a href="https://getmanfred.com" target="_blank" rel="noopener noreferrer"
+              className="underline underline-offset-2 hover:opacity-70 transition-opacity">
+              Manfred
+            </a>
+            {' '}para la comunidad
+          </p>
+          <p className="font-sans text-xs leading-relaxed" style={{ color: '#9ca3af' }}>
+            Manfred es una agencia de recruiting con sentido común y salarios públicos.
+            <br />
+            Tus datos son tuyos — nada de lo que subas se almacena en nuestros servidores.
+          </p>
+        </div>
+        <a href="https://getmanfred.com" target="_blank" rel="noopener noreferrer"
+          className="flex-shrink-0 hover:opacity-70 transition-opacity duration-200">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-manfred.svg" alt="Manfred" style={{ height: 20, width: 'auto', opacity: 0.5 }} />
+        </a>
+      </div>
+    </footer>
+  )
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -63,6 +92,7 @@ export default function RootLayout({
       <body className="antialiased bg-white text-purple-dark">
         <FeedbackWidget />
         {children}
+        <Footer />
       </body>
     </html>
   )
