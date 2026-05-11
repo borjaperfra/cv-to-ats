@@ -172,21 +172,6 @@ export default function AdminFeedbackPage() {
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#f0ede8' }}>
 
-      {/* Header */}
-      <header className="bg-white border-b sticky top-0 z-10" style={{ borderColor: '#e5e0d8' }}>
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo-manfred.svg" alt="Manfred" className="h-7 w-auto" />
-            <span className="w-px h-5 bg-gray-200 mx-1" />
-            <span className="font-sans font-[900] text-navy text-base uppercase tracking-widest">ATS Killer</span>
-            <span className="font-sans font-[700] text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-full"
-              style={{ backgroundColor: '#01FFC6', color: '#092c64' }}>Beta</span>
-          </div>
-          <span className="font-sans font-[700] text-xs uppercase tracking-widest text-gray-400">Admin · Feedback</span>
-        </div>
-      </header>
-
       <main className="max-w-5xl mx-auto px-6 py-8 space-y-6">
 
         {/* ── Stats ── */}
