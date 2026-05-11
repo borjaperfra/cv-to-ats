@@ -173,6 +173,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 // ─── Main editor ────────────────────────────────────────────────────────────
 
 const DRAFT_KEY = 'cv-editor-draft'
+const TRANSLATED_KEY = 'cv-editor-translated'
 
 function wordCount(cv: CVData): number {
   const skillWords = [
@@ -228,6 +229,11 @@ export default function EditorPage() {
       } catch { /* ignore */ }
     }
 
+    const translated = localStorage.getItem(TRANSLATED_KEY)
+    if (translated) {
+      try { setTranslatedCv(JSON.parse(translated) as Partial<Record<CvLang, CVData>>) } catch { /* ignore */ }
+    }
+
     const cvText = sessionStorage.getItem('atsCvText')
     const resultRaw = sessionStorage.getItem('atsResult')
     if (cvText && cvText.length > 100) {
@@ -253,6 +259,11 @@ export default function EditorPage() {
     }, 800)
     return () => clearTimeout(t)
   }, [cv])
+
+  // Persist translated versions
+  useEffect(() => {
+    localStorage.setItem(TRANSLATED_KEY, JSON.stringify(translatedCv))
+  }, [translatedCv])
 
   const allSuggestions: Suggestion[] = detectedResult
     ? detectedResult.categories.flatMap(c => c.suggestions ?? [])
@@ -516,7 +527,7 @@ export default function EditorPage() {
       <Header />
 
       {/* Hero */}
-      <section className="bg-navy text-white py-10 px-6 flex-shrink-0">
+      <section className="bg-navy text-white py-6 sm:py-10 px-6 flex-shrink-0">
         <div className="max-w-container mx-auto text-center">
           <p className="font-sans font-[900] uppercase tracking-widest text-neon text-xs mb-4">
             Herramienta Gratuita de Manfred

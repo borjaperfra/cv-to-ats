@@ -55,7 +55,7 @@ export const metadata: Metadata = {
 
 function Footer() {
   return (
-    <footer className="no-print border-t py-8 px-6" style={{ borderColor: '#e5e0d8', backgroundColor: '#f0ede8' }}>
+    <footer className="no-print border-t py-5 sm:py-8 px-6" style={{ borderColor: '#e5e0d8', backgroundColor: '#f0ede8' }}>
       <div className="max-w-3xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
         <div className="space-y-1.5">
           <p className="font-sans font-[700] text-xs uppercase tracking-widest" style={{ color: '#092c64' }}>

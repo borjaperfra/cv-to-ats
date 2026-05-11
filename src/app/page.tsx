@@ -397,10 +397,14 @@ export default function UploadPage() {
       if (!response.ok) throw new Error(data.error || 'Error al analizar el CV.')
       if (data._cvText) {
         sessionStorage.setItem('atsCvText', data._cvText)
+        localStorage.setItem('atsCvText', data._cvText)
       }
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { _cvText, ...result } = data
       sessionStorage.setItem('atsResult', JSON.stringify(result as ATSAnalysisResult))
+      if ((result as ATSAnalysisResult).nombre) {
+        localStorage.setItem('atsCvName', (result as ATSAnalysisResult).nombre)
+      }
       router.push('/results')
     } catch (error) {
       setState('error')
@@ -445,12 +449,12 @@ export default function UploadPage() {
       <Header />
 
       {/* ── Hero ───────────────────────────────────────────────────────────── */}
-      <section className="bg-navy text-white py-16 px-6">
+      <section className="bg-navy text-white py-8 sm:py-16 px-6">
         <div className="max-w-container mx-auto text-center">
-          <p className="font-sans font-[900] uppercase tracking-widest text-neon text-xs mb-5">
+          <p className="font-sans font-[900] uppercase tracking-widest text-neon text-xs mb-4 sm:mb-5">
             {L.tagline}
           </p>
-          <h1 className="font-heading font-[900] text-4xl md:text-5xl leading-tight mb-4">
+          <h1 className="font-heading font-[900] text-3xl sm:text-4xl md:text-5xl leading-tight mb-3 sm:mb-4">
             {L.h1a}
             <br />
             <span className="italic text-neon">{L.h1b}</span>
@@ -462,7 +466,7 @@ export default function UploadPage() {
       </section>
 
       {/* ── Upload area ────────────────────────────────────────────────────── */}
-      <section id="upload" className="bg-bg-light px-6 py-12">
+      <section id="upload" className="bg-bg-light px-6 py-6 sm:py-12">
         <main className="max-w-2xl mx-auto">
 
           <DropZone onFileSelect={handleFileSelect} disabled={isUploading} />

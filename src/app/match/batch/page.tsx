@@ -154,12 +154,12 @@ export default function BatchMatchPage() {
       <Header />
 
       {/* Hero */}
-      <section className="bg-navy text-white py-14 px-6">
+      <section className="bg-navy text-white py-8 sm:py-14 px-6">
         <div className="max-w-container mx-auto text-center">
           <p className="font-sans font-[900] uppercase tracking-widest text-neon text-xs mb-5">
             Herramienta Gratuita de Manfred
           </p>
-          <h1 className="font-heading font-[900] text-4xl md:text-5xl leading-tight mb-4">
+          <h1 className="font-heading font-[900] text-3xl sm:text-4xl md:text-5xl leading-tight mb-4">
             Match en batch:
             <br />
             <span className="italic" style={{ color: '#01FFC6' }}>varias ofertas a la vez</span>
@@ -170,7 +170,7 @@ export default function BatchMatchPage() {
         </div>
       </section>
 
-      <main className="max-w-2xl mx-auto px-6 py-10 space-y-5">
+      <main className="max-w-2xl mx-auto px-6 py-6 sm:py-10 space-y-5">
 
         {/* Back link */}
         <button

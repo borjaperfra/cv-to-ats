@@ -86,7 +86,7 @@ export default function LinkedInPage() {
       <Header />
 
       {/* Hero */}
-      <section className="bg-navy text-white py-14 px-6">
+      <section className="bg-navy text-white py-8 sm:py-14 px-6">
         <div className="max-w-container mx-auto text-center">
           <p className="font-sans font-[900] uppercase tracking-widest text-neon text-xs mb-5">
             Herramienta Gratuita de Manfred
@@ -103,7 +103,7 @@ export default function LinkedInPage() {
       </section>
 
       {/* Form */}
-      <main className="max-w-2xl mx-auto px-6 py-10 space-y-5">
+      <main className="max-w-2xl mx-auto px-6 py-6 sm:py-10 space-y-5">
 
         {/* Cached result banner */}
         {hasCachedResult && (
