@@ -4,15 +4,66 @@ import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import confetti from 'canvas-confetti'
 import type { MatchResult } from '@/types/match'
-import { getLang } from '@/components/LanguageSelector'
+import { getLang, type Lang } from '@/components/LanguageSelector'
 import Header from '@/components/Header'
 import { renderWithTerminos } from '@/lib/renderBold'
 import SuggestionCard from '@/components/results/SuggestionCard'
 
-function getScoreColor(score: number) {
-  if (score >= 75) return { arc: '#0DA1A4', bg: '#e6f7f7', text: '#0DA1A4', label: 'Buen match' }
-  if (score >= 50) return { arc: '#f59e0b', bg: '#fffbeb', text: '#d97706', label: 'Match parcial' }
-  return               { arc: '#ef4444', bg: '#fff1f2', text: '#e11d48', label: 'Match bajo' }
+const LABELS = {
+  es: {
+    loading: 'Cargando resultados...',
+    matchWith: 'Match con oferta',
+    downloadPdf: 'Descargar PDF',
+    scoreLabels: { good: 'Buen match', partial: 'Match parcial', low: 'Match bajo' },
+    keywordsPresent: '✓ Keywords presentes',
+    keywordsMissing: '✗ Keywords faltantes',
+    howToImprove: 'Cómo mejorar tu match',
+    youDecide: 'Tú decides por dónde empezar.',
+    tryNewOffer: 'Probar con otra oferta',
+    newOfferPlaceholder: 'Pega el texto de la nueva oferta o una URL (https://...)',
+    orUpload: 'o sube un archivo',
+    urlDetected: 'URL detectada',
+    uploadFile: 'PDF o DOCX',
+    remove: 'Quitar',
+    analyzing: 'Analizando...',
+    compareOffer: 'Comparar con esta oferta',
+    analyzeCV: 'Analizar CV',
+    errNoJd: 'Introduce la nueva oferta para continuar.',
+    errService: 'El servicio no está disponible en este momento. Inténtalo de nuevo en unos segundos.',
+    errMatch: 'Error al analizar el match.',
+    errUnknown: 'Error inesperado.',
+  },
+  en: {
+    loading: 'Loading results...',
+    matchWith: 'Match with offer',
+    downloadPdf: 'Download PDF',
+    scoreLabels: { good: 'Good match', partial: 'Partial match', low: 'Low match' },
+    keywordsPresent: '✓ Keywords present',
+    keywordsMissing: '✗ Missing keywords',
+    howToImprove: 'How to improve your match',
+    youDecide: 'You decide where to start.',
+    tryNewOffer: 'Try with another offer',
+    newOfferPlaceholder: 'Paste the new job description or a URL (https://...)',
+    orUpload: 'or upload a file',
+    urlDetected: 'URL detected',
+    uploadFile: 'PDF or DOCX',
+    remove: 'Remove',
+    analyzing: 'Analysing...',
+    compareOffer: 'Compare with this offer',
+    analyzeCV: 'Analyse CV',
+    errNoJd: 'Enter the new job offer to continue.',
+    errService: 'The service is not available right now. Please try again in a few seconds.',
+    errMatch: 'Error analysing the match.',
+    errUnknown: 'Unexpected error.',
+  },
+}
+
+type ScoreLabels = { good: string; partial: string; low: string }
+
+function getScoreColor(score: number, labels: ScoreLabels) {
+  if (score >= 75) return { arc: '#0DA1A4', bg: '#e6f7f7', text: '#0DA1A4', label: labels.good }
+  if (score >= 50) return { arc: '#f59e0b', bg: '#fffbeb', text: '#d97706', label: labels.partial }
+  return               { arc: '#ef4444', bg: '#fff1f2', text: '#e11d48', label: labels.low }
 }
 
 const R = 52
@@ -22,8 +73,8 @@ export default function MatchResultsPage() {
   const router = useRouter()
   const [result, setResult] = useState<MatchResult | null>(null)
   const [animated, setAnimated] = useState(false)
+  const [lang, setLang] = useState<Lang>('es')
 
-  // New-offer state
   const [newJd, setNewJd] = useState('')
   const [newJdFile, setNewJdFile] = useState<File | null>(null)
   const [analyzing, setAnalyzing] = useState(false)
@@ -32,6 +83,7 @@ export default function MatchResultsPage() {
   const newJdIsUrl = /^https?:\/\/\S+$/.test(newJd.trim())
 
   useEffect(() => {
+    setLang(getLang())
     const raw = sessionStorage.getItem('matchResult')
     if (!raw) { router.replace('/match'); return }
     try {
@@ -41,6 +93,12 @@ export default function MatchResultsPage() {
       router.replace('/match')
     }
   }, [router])
+
+  useEffect(() => {
+    const handler = (e: Event) => setLang((e as CustomEvent<Lang>).detail)
+    window.addEventListener('langchange', handler)
+    return () => window.removeEventListener('langchange', handler)
+  }, [])
 
   useEffect(() => {
     if (!result || result.matchScore <= 80) return
@@ -53,14 +111,16 @@ export default function MatchResultsPage() {
     return () => clearTimeout(t)
   }, [result])
 
+  const L = LABELS[lang]
+
   const handleNewOffer = async () => {
     const hasJd = newJd.trim().length > 10 || !!newJdFile
-    if (!hasJd) { setNewJdError('Introduce la nueva oferta para continuar.'); return }
+    if (!hasJd) { setNewJdError(L.errNoJd); return }
     setAnalyzing(true)
     setNewJdError('')
     try {
       const formData = new FormData()
-      const cvText = sessionStorage.getItem('atsCvText') ?? ''
+      const cvText = sessionStorage.getItem('atsCvText') || localStorage.getItem('atsCvText') || ''
       formData.append('cvText', cvText)
       if (newJdIsUrl) {
         formData.append('jdUrl', newJd.trim())
@@ -69,14 +129,12 @@ export default function MatchResultsPage() {
       } else if (newJdFile) {
         formData.append('jdFile', newJdFile)
       }
-      formData.append('lang', getLang())
+      formData.append('lang', lang)
       const response = await fetch('/api/match', { method: 'POST', body: formData })
       const ct = response.headers.get('content-type') ?? ''
-      if (!ct.includes('application/json')) {
-        throw new Error('El servicio no está disponible en este momento. Inténtalo de nuevo en unos segundos.')
-      }
+      if (!ct.includes('application/json')) throw new Error(L.errService)
       const data = await response.json()
-      if (!response.ok) throw new Error(data.error || 'Error al analizar el match.')
+      if (!response.ok) throw new Error(data.error || L.errMatch)
       sessionStorage.setItem('matchResult', JSON.stringify(data as MatchResult))
       setResult(data as MatchResult)
       setAnimated(false)
@@ -85,7 +143,7 @@ export default function MatchResultsPage() {
       setNewJdFile(null)
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (err) {
-      setNewJdError(err instanceof Error ? err.message : 'Error inesperado.')
+      setNewJdError(err instanceof Error ? err.message : L.errUnknown)
     } finally {
       setAnalyzing(false)
     }
@@ -99,13 +157,13 @@ export default function MatchResultsPage() {
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
           </svg>
-          <p className="font-sans text-gray-400 text-sm">Cargando resultados...</p>
+          <p className="font-sans text-gray-400 text-sm">{L.loading}</p>
         </div>
       </div>
     )
   }
 
-  const colors = getScoreColor(result.matchScore)
+  const colors = getScoreColor(result.matchScore, L.scoreLabels)
   const dashOffset = animated ? CIRC * (1 - result.matchScore / 100) : CIRC
   const sorted = [...result.sugerencias]
 
@@ -119,11 +177,10 @@ export default function MatchResultsPage() {
 
           {/* Score card */}
           <div className="bg-white rounded-2xl p-6 break-inside-avoid" style={{ boxShadow: '0 2px 16px rgba(0,0,0,0.07)' }}>
-            {/* Top bar */}
             <div className="flex items-center justify-between mb-5">
               <div>
                 <span className="font-sans font-[600] text-xs uppercase tracking-widest text-gray-400">
-                  Match con oferta
+                  {L.matchWith}
                 </span>
                 {result.puestoBuscado && (
                   <p className="font-sans font-[700] text-sm mt-0.5 text-purple-dark">
@@ -139,11 +196,10 @@ export default function MatchResultsPage() {
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                Descargar PDF
+                {L.downloadPdf}
               </button>
             </div>
 
-            {/* Circle + analysis */}
             <div className="flex flex-col sm:flex-row items-start gap-6">
               <div className="flex flex-col items-center flex-shrink-0">
                 <div className="relative" style={{ width: 130, height: 130 }}>
@@ -174,13 +230,12 @@ export default function MatchResultsPage() {
               </div>
             </div>
 
-            {/* Keywords */}
             {(result.keywordsPresentes.length > 0 || result.keywordsFaltantes.length > 0) && (
               <div className="mt-5 pt-5 border-t border-gray-100 grid grid-cols-1 sm:grid-cols-2 gap-5">
                 {result.keywordsPresentes.length > 0 && (
                   <div>
                     <p className="font-sans font-[600] text-xs uppercase tracking-widest mb-2.5" style={{ color: '#059669' }}>
-                      ✓ Keywords presentes
+                      {L.keywordsPresent}
                     </p>
                     <div className="flex flex-wrap gap-1.5">
                       {result.keywordsPresentes.map(kw => (
@@ -195,7 +250,7 @@ export default function MatchResultsPage() {
                 {result.keywordsFaltantes.length > 0 && (
                   <div>
                     <p className="font-sans font-[600] text-xs uppercase tracking-widest mb-2.5" style={{ color: '#d97706' }}>
-                      ✗ Keywords faltantes
+                      {L.keywordsMissing}
                     </p>
                     <div className="flex flex-wrap gap-1.5">
                       {result.keywordsFaltantes.map(kw => (
@@ -215,12 +270,8 @@ export default function MatchResultsPage() {
           {sorted.length > 0 && (
             <>
               <div className="pt-3 pb-1">
-                <h2 className="font-sans font-[900] text-xl text-purple-dark">
-                  Cómo mejorar tu match
-                </h2>
-                <p className="font-sans text-xs text-gray-400 mt-1">
-                  Tú decides por dónde empezar.
-                </p>
+                <h2 className="font-sans font-[900] text-xl text-purple-dark">{L.howToImprove}</h2>
+                <p className="font-sans text-xs text-gray-400 mt-1">{L.youDecide}</p>
               </div>
               {sorted.map((s, i) => (
                 <div key={i} className="break-inside-avoid">
@@ -233,14 +284,14 @@ export default function MatchResultsPage() {
           {/* New offer panel */}
           <div className="no-print bg-white rounded-2xl p-6" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
             <p className="font-sans font-[700] text-xs uppercase tracking-widest text-gray-400 mb-4">
-              Probar con otra oferta
+              {L.tryNewOffer}
             </p>
 
             <div className="relative mb-3">
               <textarea
                 value={newJd}
                 onChange={e => { setNewJd(e.target.value); setNewJdFile(null); setNewJdError('') }}
-                placeholder="Pega el texto de la nueva oferta o una URL (https://...)"
+                placeholder={L.newOfferPlaceholder}
                 rows={newJdIsUrl ? 2 : 4}
                 disabled={analyzing}
                 autoComplete="off"
@@ -254,14 +305,14 @@ export default function MatchResultsPage() {
                   <svg className="w-3 h-3 text-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                   </svg>
-                  <span className="font-sans font-[700] text-xs text-teal">URL detectada</span>
+                  <span className="font-sans font-[700] text-xs text-teal">{L.urlDetected}</span>
                 </div>
               )}
             </div>
 
             <div className="flex items-center gap-3 mb-3">
               <div className="flex-1 h-px bg-gray-100" />
-              <span className="font-sans text-xs text-gray-400">o sube un archivo</span>
+              <span className="font-sans text-xs text-gray-400">{L.orUpload}</span>
               <div className="flex-1 h-px bg-gray-100" />
             </div>
 
@@ -274,12 +325,12 @@ export default function MatchResultsPage() {
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                   </svg>
-                  {newJdFile ? newJdFile.name : 'PDF o DOCX'}
+                  {newJdFile ? newJdFile.name : L.uploadFile}
                 </div>
               </label>
               {newJdFile && (
                 <button onClick={() => setNewJdFile(null)} className="font-sans text-xs text-gray-400 hover:text-red-500 underline underline-offset-2">
-                  Quitar
+                  {L.remove}
                 </button>
               )}
             </div>
@@ -302,13 +353,13 @@ export default function MatchResultsPage() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                     </svg>
-                    Analizando...
+                    {L.analyzing}
                   </span>
-                ) : 'Comparar con esta oferta'}
+                ) : L.compareOffer}
               </button>
               <button onClick={() => router.push('/')}
                 className="font-sans font-[700] text-xs uppercase tracking-wider text-gray-400 hover:text-navy transition-colors px-3">
-                Analizar CV
+                {L.analyzeCV}
               </button>
             </div>
           </div>
