@@ -86,9 +86,16 @@ export async function POST(request: NextRequest) {
       'university', 'formación', 'training', 'curriculum', 'résumé', 'resume',
       'idiomas', 'languages', 'certificaciones', 'certifications', 'logros', 'achievements',
     ]
+    const NON_CV_KEYWORDS = [
+      'factura', 'invoice', 'importe', 'iva', 'base imponible', 'total a pagar',
+      'número de factura', 'fecha de emisión', 'proveedor', 'receptor',
+      'albarán', 'presupuesto nº', 'cuenta bancaria', 'iban', 'swift',
+      'amount due', 'bill to', 'payment terms', 'purchase order',
+    ]
     const sample = cvText.slice(0, 3000).toLowerCase()
-    const hasCVContent = CV_KEYWORDS.some(kw => sample.includes(kw))
-    if (!hasCVContent) {
+    const isNonCV = NON_CV_KEYWORDS.some(kw => sample.includes(kw))
+    const cvMatchCount = CV_KEYWORDS.filter(kw => sample.includes(kw)).length
+    if (isNonCV || cvMatchCount < 2) {
       return NextResponse.json(
         { error: 'El documento no parece un CV. Por favor, sube tu currículum en formato PDF o DOCX.' },
         { status: 422 }
