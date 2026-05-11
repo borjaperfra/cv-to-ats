@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 import { extractCVText } from '@/lib/extractors'
 import { analyzeWithGemini } from '@/lib/gemini'
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
@@ -20,6 +21,25 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
       setTimeout(() => reject(new Error('El análisis tardó demasiado. Por favor, inténtalo de nuevo.')), ms)
     ),
   ])
+}
+
+async function checkIsCV(text: string): Promise<boolean> {
+  try {
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
+    const precheck = genAI.getGenerativeModel({
+      model: 'gemini-3-flash-preview',
+      generationConfig: { temperature: 0, maxOutputTokens: 5 },
+    })
+    const prompt = `Is the following document a CV or resume? Answer only "yes" or "no".\n\n${text.slice(0, 500)}`
+    const res = await Promise.race([
+      precheck.generateContent(prompt),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000)),
+    ])
+    const answer = res.response.text().trim().toLowerCase()
+    return answer.startsWith('y') || answer.startsWith('s')
+  } catch {
+    return true
+  }
 }
 
 function sanitizeError(error: unknown): string {
@@ -80,22 +100,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const CV_KEYWORDS = [
-      'experiencia', 'experience', 'educación', 'education', 'habilidades', 'skills',
-      'trabajo', 'empleo', 'cargo', 'puesto', 'empresa', 'company', 'universidad',
-      'university', 'formación', 'training', 'curriculum', 'résumé', 'resume',
-      'idiomas', 'languages', 'certificaciones', 'certifications', 'logros', 'achievements',
+    const OBVIOUS_NON_CV = [
+      'factura', 'invoice', 'base imponible', 'número de factura',
+      'iban', 'swift', 'amount due', 'bill to', 'purchase order',
     ]
-    const NON_CV_KEYWORDS = [
-      'factura', 'invoice', 'importe', 'iva', 'base imponible', 'total a pagar',
-      'número de factura', 'fecha de emisión', 'proveedor', 'receptor',
-      'albarán', 'presupuesto nº', 'cuenta bancaria', 'iban', 'swift',
-      'amount due', 'bill to', 'payment terms', 'purchase order',
-    ]
-    const sample = cvText.slice(0, 3000).toLowerCase()
-    const isNonCV = NON_CV_KEYWORDS.some(kw => sample.includes(kw))
-    const cvMatchCount = CV_KEYWORDS.filter(kw => sample.includes(kw)).length
-    if (isNonCV || cvMatchCount < 2) {
+    const quickSample = cvText.slice(0, 1000).toLowerCase()
+    const isObviouslyNotCV = OBVIOUS_NON_CV.some(kw => quickSample.includes(kw))
+
+    if (isObviouslyNotCV || !await checkIsCV(cvText)) {
       return NextResponse.json(
         { error: 'El documento no parece un CV. Por favor, sube tu currículum en formato PDF o DOCX.' },
         { status: 422 }
