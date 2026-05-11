@@ -24,6 +24,7 @@ const REDACT_OPTIONS = [
   { key: 'nacimiento', label: 'Fecha de nacimiento' },
   { key: 'dni',        label: 'DNI / Identificación' },
   { key: 'foto',       label: 'Referencia a foto' },
+  { key: 'empresa',    label: 'Empresas (experiencia)' },
 ]
 
 const ALL_KEYS = new Set(REDACT_OPTIONS.map(o => o.key))

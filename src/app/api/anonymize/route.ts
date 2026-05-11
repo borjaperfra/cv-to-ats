@@ -14,6 +14,7 @@ const FIELD_LABELS: Record<string, string> = {
   nacimiento: 'fecha de nacimiento o edad',
   dni:        'DNI, NIE, NIF, pasaporte u otros documentos de identidad',
   foto:       'menciones o referencias a fotografía',
+  empresa:    'nombres de todas las empresas en la experiencia laboral (campo "empresa" de cada entrada)',
 }
 
 export async function POST(req: NextRequest) {
@@ -112,7 +113,7 @@ Devuelve ÚNICAMENTE JSON válido con esta estructura exacta:
 
 Reglas:
 - Los campos en la lista de datos a anonimizar se sustituyen por "[ANONIMIZADO]"
-- Todo el contenido profesional (empresas, logros, fechas de trabajo, habilidades, formación, proyectos) se conserva íntegro
+- Todo el contenido profesional (logros, fechas de trabajo, habilidades, formación, proyectos) se conserva íntegro, SALVO los campos indicados arriba para anonimizar
 - Si un campo no está en el CV, usa string vacío "" o array vacío []
 - "actual": true si es el trabajo presente, false en caso contrario
 - Los IDs deben ser únicos: "exp-1", "exp-2", "edu-1", "proj-1", "lang-1", etc.
