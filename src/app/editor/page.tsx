@@ -173,6 +173,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 // ─── Main editor ────────────────────────────────────────────────────────────
 
 const DRAFT_KEY = 'cv-editor-draft'
+const TRANSLATED_KEY = 'cv-editor-translated'
 
 function wordCount(cv: CVData): number {
   const skillWords = [
@@ -228,6 +229,11 @@ export default function EditorPage() {
       } catch { /* ignore */ }
     }
 
+    const translated = localStorage.getItem(TRANSLATED_KEY)
+    if (translated) {
+      try { setTranslatedCv(JSON.parse(translated) as Partial<Record<CvLang, CVData>>) } catch { /* ignore */ }
+    }
+
     const cvText = sessionStorage.getItem('atsCvText')
     const resultRaw = sessionStorage.getItem('atsResult')
     if (cvText && cvText.length > 100) {
@@ -253,6 +259,11 @@ export default function EditorPage() {
     }, 800)
     return () => clearTimeout(t)
   }, [cv])
+
+  // Persist translated versions
+  useEffect(() => {
+    localStorage.setItem(TRANSLATED_KEY, JSON.stringify(translatedCv))
+  }, [translatedCv])
 
   const allSuggestions: Suggestion[] = detectedResult
     ? detectedResult.categories.flatMap(c => c.suggestions ?? [])
