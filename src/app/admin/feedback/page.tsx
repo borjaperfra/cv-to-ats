@@ -212,23 +212,32 @@ export default function AdminFeedbackPage() {
         )}
 
         {/* ── Tabs ── */}
-        <div className="flex gap-2 flex-wrap">
-          {([
-            { key: 'activo',    label: `Activos (${activos.length})` },
-            { key: 'archivado', label: `Archivados (${archivados.length})` },
-            { key: 'issues',    label: `Issues (${issuesAbiertas.length})` },
-          ] as { key: Tab; label: string }[]).map(t => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className="font-sans font-[700] text-xs uppercase tracking-widest px-4 py-2 rounded-full transition-colors"
-              style={tab === t.key
-                ? { backgroundColor: '#092c64', color: '#ffffff' }
-                : { backgroundColor: '#ffffff', color: '#6b7280' }}
-            >
-              {t.label}
-            </button>
-          ))}
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap">
+            {([
+              { key: 'activo',    label: `Activos (${activos.length})` },
+              { key: 'archivado', label: `Archivados (${archivados.length})` },
+              { key: 'issues',    label: `Issues (${issuesAbiertas.length})` },
+            ] as { key: Tab; label: string }[]).map(t => (
+              <button
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                className="font-sans font-[700] text-xs uppercase tracking-widest px-4 py-2 rounded-full transition-colors"
+                style={tab === t.key
+                  ? { backgroundColor: '#092c64', color: '#ffffff' }
+                  : { backgroundColor: '#ffffff', color: '#6b7280' }}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+          <a
+            href="/admin/stats"
+            className="font-sans font-[700] text-xs uppercase tracking-widest px-4 py-2 rounded-full transition-colors"
+            style={{ backgroundColor: '#e6f7f7', color: '#0DA1A4' }}
+          >
+            Uso API →
+          </a>
         </div>
 
         {/* ══════════════════════════════════════════════════════════════════════

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { parseCVToEditor, improveCVWithSuggestions, translateCVContent } from '@/lib/gemini-editor'
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
+import { getSupabase } from '@/lib/supabase'
 import type { CVData } from '@/types/cv'
 import type { Suggestion } from '@/types/analysis'
 import type { CvLang } from '@/lib/cv-labels'
@@ -33,6 +34,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'No hay texto de CV suficiente para parsear.' }, { status: 400 })
       }
       const result = await parseCVToEditor(cvText.slice(0, 60_000))
+      void (async () => { try { await getSupabase().rpc('increment_stat', { stat_id: 'action:editor_parse' }) } catch {} })()
       return NextResponse.json(result)
     }
 
@@ -41,6 +43,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Faltan datos del CV o las recomendaciones.' }, { status: 400 })
       }
       const result = await improveCVWithSuggestions(cvData, suggestions)
+      void (async () => { try { await getSupabase().rpc('increment_stat', { stat_id: 'action:editor_improve' }) } catch {} })()
       return NextResponse.json(result)
     }
 
@@ -49,6 +52,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Faltan datos para la traducción.' }, { status: 400 })
       }
       const result = await translateCVContent(cvData, targetLang)
+      void (async () => { try { await getSupabase().rpc('increment_stat', { stat_id: 'action:editor_translate' }) } catch {} })()
       return NextResponse.json(result)
     }
 

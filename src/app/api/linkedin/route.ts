@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { analyzeLinkedIn } from '@/lib/gemini-linkedin'
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
+import { getSupabase } from '@/lib/supabase'
 
 export const runtime = 'nodejs'
 export const maxDuration = 90
@@ -67,6 +68,8 @@ export async function POST(request: NextRequest) {
 
     const result = await analyzeLinkedIn(profileText.trim(), lang)
     result.analyzedAt = new Date().toISOString()
+
+    void (async () => { try { await getSupabase().rpc('increment_stat', { stat_id: 'action:linkedin' }) } catch {} })()
 
     return NextResponse.json(result)
   } catch (error) {

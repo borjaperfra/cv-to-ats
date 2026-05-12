@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import type { CVData } from '@/types/cv'
 import { EMPTY_CV } from '@/types/cv'
+import { getSupabase } from '@/lib/supabase'
 
 export const maxDuration = 90
 
@@ -136,6 +137,8 @@ ${rawText}`
     } catch {
       return NextResponse.json({ error: 'Error al procesar la estructura del CV.' }, { status: 500 })
     }
+
+    void (async () => { try { await getSupabase().rpc('increment_stat', { stat_id: 'action:anonymize' }) } catch {} })()
 
     return NextResponse.json({ cvData })
   } catch (err) {

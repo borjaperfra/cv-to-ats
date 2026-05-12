@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { extractCVText } from '@/lib/extractors'
 import { matchWithGemini } from '@/lib/gemini-match'
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
+import { getSupabase } from '@/lib/supabase'
 
 export const runtime = 'nodejs'
 export const maxDuration = 90
@@ -190,6 +191,8 @@ export async function POST(request: NextRequest) {
     const lang = (formData.get('lang') as string | null) === 'en' ? 'en' : 'es'
     const result = await matchWithGemini(cvText, jdText, lang)
     result.analyzedAt = new Date().toISOString()
+
+    void (async () => { try { await getSupabase().rpc('increment_stat', { stat_id: 'action:match' }) } catch {} })()
 
     return NextResponse.json(result)
   } catch (error) {
