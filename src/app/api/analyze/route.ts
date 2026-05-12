@@ -18,7 +18,6 @@ const MAX_SIZE_BYTES      = 3 * 1024 * 1024
 const MAX_PAGES           = 5
 const MAX_TEXT_CHARS      = 60_000
 const ANALYSIS_TIMEOUT_MS = 85_000
-const MAX_DAILY_ANALYSES  = 300
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return Promise.race([
@@ -43,19 +42,6 @@ function looksLikeCV(text: string): boolean {
   return keywords.filter(kw => sample.includes(kw)).length >= 2
 }
 
-async function checkDailyQuota(): Promise<boolean> {
-  try {
-    const today = new Date().toISOString().slice(0, 10)
-    const { data } = await getSupabase()
-      .from('stats')
-      .select('value')
-      .eq('id', `daily:${today}`)
-      .single()
-    return (data?.value ?? 0) < MAX_DAILY_ANALYSES
-  } catch {
-    return true
-  }
-}
 
 function sanitizeError(error: unknown): string {
   if (error instanceof Error) {
@@ -100,13 +86,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'El archivo supera el límite de 3 MB.' },
         { status: 413 }
-      )
-    }
-
-    if (!await checkDailyQuota()) {
-      return NextResponse.json(
-        { error: 'Hemos alcanzado el límite diario de análisis. Por favor, inténtalo mañana.' },
-        { status: 429 }
       )
     }
 
@@ -156,13 +135,7 @@ export async function POST(request: NextRequest) {
     const result = await withTimeout(analyzeWithGemini(cleanedCvText, lang), ANALYSIS_TIMEOUT_MS)
     result.analyzedAt = new Date().toISOString()
 
-    const today = new Date().toISOString().slice(0, 10)
-    void (async () => {
-      try {
-        await getSupabase().rpc('increment_stat', { stat_id: 'cvs_analyzed' })
-        await getSupabase().rpc('increment_stat', { stat_id: `daily:${today}` })
-      } catch {}
-    })()
+    void (async () => { try { await getSupabase().rpc('increment_stat', { stat_id: 'cvs_analyzed' }) } catch {} })()
 
     return NextResponse.json({ ...result, _cvText: cvText })
   } catch (error) {
