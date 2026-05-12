@@ -71,6 +71,11 @@ function Footer() {
             <br />
             Tus datos son tuyos — nada de lo que subas se almacena en nuestros servidores.
           </p>
+          <a href="/privacidad"
+            className="font-sans text-xs underline underline-offset-2 hover:opacity-70 transition-opacity mt-1 inline-block"
+            style={{ color: '#9ca3af' }}>
+            Política de privacidad
+          </a>
         </div>
         <a href="https://getmanfred.com" target="_blank" rel="noopener noreferrer"
           className="flex-shrink-0 hover:opacity-70 transition-opacity duration-200">
