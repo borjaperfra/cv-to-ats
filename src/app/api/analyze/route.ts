@@ -125,8 +125,9 @@ export async function POST(request: NextRequest) {
     }
 
     const OBVIOUS_NON_CV = [
-      'factura', 'invoice', 'base imponible', 'número de factura',
-      'iban', 'swift', 'amount due', 'bill to', 'purchase order',
+      'número de factura', 'base imponible', 'nº de factura',
+      'purchase order', 'amount due', 'bill to:',
+      'fecha de vencimiento', 'total a pagar',
     ]
     const quickSample = cvText.slice(0, 1000).toLowerCase()
     const isObviouslyNotCV = OBVIOUS_NON_CV.some(kw => quickSample.includes(kw))
