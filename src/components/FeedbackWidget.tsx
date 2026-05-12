@@ -172,7 +172,7 @@ export default function FeedbackWidget() {
                 </div>
 
                 {/* Optional name / email */}
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block font-sans font-[600] text-xs uppercase tracking-wider text-gray-400 mb-1.5">
                       Nombre <span className="normal-case font-[400]">(opcional)</span>

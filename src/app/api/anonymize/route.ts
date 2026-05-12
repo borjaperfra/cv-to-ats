@@ -3,7 +3,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 import type { CVData } from '@/types/cv'
 import { EMPTY_CV } from '@/types/cv'
 
-export const maxDuration = 60
+export const maxDuration = 90
 
 const FIELD_LABELS: Record<string, string> = {
   nombre:     'nombre completo de la persona',

@@ -6,7 +6,7 @@ import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
 import { getSupabase } from '@/lib/supabase'
 
 export const runtime = 'nodejs'
-export const maxDuration = 60
+export const maxDuration = 90
 
 const ALLOWED_TYPES = [
   'application/pdf',
@@ -18,7 +18,7 @@ const ALLOWED_TYPES = [
 const MAX_SIZE_BYTES = 3 * 1024 * 1024   // 3 MB
 const MAX_PAGES      = 3
 const MAX_TEXT_CHARS = 60_000
-const ANALYSIS_TIMEOUT_MS = 50_000
+const ANALYSIS_TIMEOUT_MS = 85_000
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return Promise.race([

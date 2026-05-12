@@ -33,7 +33,7 @@ function ScoreBadge({ score }: { score: number }) {
       >
         {score}
       </div>
-      <span className="font-sans text-[10px] font-[700] mt-1 uppercase tracking-wide" style={{ color }}>
+      <span className="font-sans text-xs font-[700] mt-1 uppercase tracking-wide" style={{ color }}>
         {label}
       </span>
     </div>

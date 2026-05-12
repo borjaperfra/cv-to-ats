@@ -152,7 +152,7 @@ export default function ScoreHeader({
 
       {/* Metrics row */}
       {hasMetrics && (
-        <div className="mt-5 pt-5 border-t border-gray-100 grid grid-cols-3 gap-4">
+        <div className="mt-5 pt-5 border-t border-gray-100 grid grid-cols-3 gap-2 sm:gap-4">
           <div className="text-center">
             <p className="font-sans font-[700] text-lg text-purple-dark">
               {metricas!.palabras.toLocaleString('es-ES')}

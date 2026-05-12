@@ -214,7 +214,7 @@ export default function ComparePage() {
               <div className="flex items-center justify-center gap-8">
                 <div className="text-center">
                   <p className="font-sans text-xs text-gray-400 mb-1">Antes</p>
-                  <p className="font-sans font-[900] text-4xl" style={{ color: '#9ca3af' }}>
+                  <p className="font-sans font-[900] text-3xl sm:text-4xl" style={{ color: '#9ca3af' }}>
                     {before.overallScore}
                   </p>
                 </div>
@@ -237,7 +237,7 @@ export default function ComparePage() {
                 <div className="text-center">
                   <p className="font-sans text-xs text-gray-400 mb-1">Después</p>
                   <p
-                    className="font-sans font-[900] text-4xl"
+                    className="font-sans font-[900] text-3xl sm:text-4xl"
                     style={{ color: after.overallScore >= 75 ? '#10b981' : after.overallScore >= 50 ? '#f59e0b' : '#ef4444' }}
                   >
                     {after.overallScore}

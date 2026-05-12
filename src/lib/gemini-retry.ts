@@ -23,7 +23,7 @@ export async function withGeminiRetry<T>(fn: () => Promise<T>): Promise<T> {
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
       const timeout = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Gemini request timed out after 55s')), CALL_TIMEOUT_MS)
+        setTimeout(() => reject(new Error('Gemini request timed out after 90s')), CALL_TIMEOUT_MS)
       )
       return await Promise.race([fn(), timeout])
     } catch (error) {

@@ -4,7 +4,7 @@ import { matchWithGemini } from '@/lib/gemini-match'
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
-export const maxDuration = 60
+export const maxDuration = 90
 
 const ALLOWED_TYPES  = ['application/pdf']
 const MAX_SIZE_BYTES = 3 * 1024 * 1024

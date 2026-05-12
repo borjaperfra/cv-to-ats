@@ -3,7 +3,7 @@ import { analyzeLinkedIn } from '@/lib/gemini-linkedin'
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
-export const maxDuration = 60
+export const maxDuration = 90
 
 const MIN_LENGTH = 200
 const MAX_LENGTH = 50_000

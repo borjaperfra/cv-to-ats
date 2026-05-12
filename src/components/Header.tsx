@@ -79,7 +79,7 @@ export default function Header({ noPrint = false }: HeaderProps) {
             <span className="font-sans font-[900] text-navy text-sm sm:text-base uppercase tracking-widest self-center leading-none">
               ATS Killer
             </span>
-            <span className="font-sans font-[700] text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-full self-center ml-1"
+            <span className="font-sans font-[700] text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded-full self-center ml-1"
               style={{ backgroundColor: '#01FFC6', color: '#092c64' }}>
               Beta
             </span>

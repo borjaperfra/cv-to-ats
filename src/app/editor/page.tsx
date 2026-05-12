@@ -556,7 +556,7 @@ export default function EditorPage() {
       </section>
 
       {/* Two-column layout */}
-      <div className="flex-1 overflow-hidden w-full max-w-[1400px] mx-auto px-6 flex gap-8">
+      <div className="flex-1 overflow-hidden w-full max-w-[1400px] mx-auto px-6 flex flex-col lg:flex-row gap-4 lg:gap-8">
 
         {/* ─── LEFT: Form ─── */}
         <div className="flex-1 min-w-0 overflow-y-auto py-8 pr-2 space-y-4">
