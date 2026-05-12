@@ -16,7 +16,7 @@ const ALLOWED_TYPES = [
   'text/markdown',
 ]
 const MAX_SIZE_BYTES = 3 * 1024 * 1024   // 3 MB
-const MAX_PAGES      = 3
+const MAX_PAGES      = 5
 const MAX_TEXT_CHARS = 60_000
 const ANALYSIS_TIMEOUT_MS = 85_000
 
