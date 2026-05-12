@@ -51,5 +51,6 @@ export async function extractCVText(buffer: Buffer, filename: string, maxPages?:
   const ext = filename.split('.').pop()?.toLowerCase()
   if (ext === 'pdf') return extractFromPDF(buffer, maxPages)
   if (ext === 'docx' || ext === 'doc') return extractFromDOCX(buffer)
-  throw new Error(`Formato no admitido: .${ext}. Por favor, sube un archivo PDF.`)
+  if (ext === 'txt' || ext === 'md') return buffer.toString('utf-8')
+  throw new Error(`Formato no admitido: .${ext}. Por favor, sube un archivo PDF, DOCX, TXT o MD.`)
 }

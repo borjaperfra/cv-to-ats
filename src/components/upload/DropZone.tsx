@@ -22,6 +22,8 @@ export default function DropZone({ onFileSelect, disabled }: DropZoneProps) {
       'application/pdf': ['.pdf'],
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
       'application/msword': ['.doc'],
+      'text/plain': ['.txt'],
+      'text/markdown': ['.md'],
     },
     maxFiles: 1,
     disabled,
@@ -83,7 +85,7 @@ export default function DropZone({ onFileSelect, disabled }: DropZoneProps) {
             o haz clic para seleccionar un archivo
           </p>
           <p className="mt-4 text-xs text-gray-400 font-sans">
-            PDF o DOCX · Máximo 10 MB
+            PDF, DOCX, TXT o MD · Máximo 3 MB
           </p>
         </>
       )}

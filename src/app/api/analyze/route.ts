@@ -8,7 +8,13 @@ import { getSupabase } from '@/lib/supabase'
 export const runtime = 'nodejs'
 export const maxDuration = 60
 
-const ALLOWED_TYPES = ['application/pdf']
+const ALLOWED_TYPES = [
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/msword',
+  'text/plain',
+  'text/markdown',
+]
 const MAX_SIZE_BYTES = 3 * 1024 * 1024   // 3 MB
 const MAX_PAGES      = 3
 const MAX_TEXT_CHARS = 60_000
@@ -96,7 +102,7 @@ export async function POST(request: NextRequest) {
 
     if (!ALLOWED_TYPES.includes(file.type)) {
       return NextResponse.json(
-        { error: 'Solo se admiten archivos PDF.' },
+        { error: 'Solo se admiten archivos PDF, DOCX, TXT o MD.' },
         { status: 415 }
       )
     }
@@ -113,7 +119,7 @@ export async function POST(request: NextRequest) {
 
     if (cvText.trim().length < 100) {
       return NextResponse.json(
-        { error: 'No se pudo extraer texto del archivo. Asegúrate de que el PDF no está protegido o escaneado.' },
+        { error: 'No se pudo extraer texto del archivo. Si es un PDF, asegúrate de que no está protegido o escaneado.' },
         { status: 422 }
       )
     }
@@ -127,7 +133,7 @@ export async function POST(request: NextRequest) {
 
     if (isObviouslyNotCV || !await checkIsCV(cvText)) {
       return NextResponse.json(
-        { error: 'El documento no parece un CV. Por favor, sube tu currículum en formato PDF o DOCX.' },
+        { error: 'El documento no parece un CV. Por favor, sube tu currículum en formato PDF, DOCX, TXT o MD.' },
         { status: 422 }
       )
     }
