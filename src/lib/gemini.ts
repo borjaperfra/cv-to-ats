@@ -1,22 +1,15 @@
-import { GoogleGenerativeAI } from '@google/generative-ai'
-import type { ATSAnalysisResult } from '@/types/analysis'
+import type { ATSAnalysisResult, CategoryAnalysis, Suggestion } from '@/types/analysis'
 import { withGeminiRetry } from '@/lib/gemini-retry'
+import { nanComplete } from '@/lib/nan-client'
 
-if (!process.env.GEMINI_API_KEY) {
-  throw new Error('GEMINI_API_KEY environment variable is not set.')
-}
+// ─── Pass 1: scoring ──────────────────────────────────────────────────────────
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
-const model = genAI.getGenerativeModel({
-  model: 'gemini-3-flash-preview',
-  generationConfig: { temperature: 0 },
-})
-
-function buildPrompt(cvText: string, lang: 'es' | 'en'): string {
+function buildScoringPrompt(cvText: string, lang: 'es' | 'en'): string {
   const langInstruction = lang === 'en'
     ? 'Respond in English. Write ALL text values in English.'
     : 'Respond in Spanish (Castilian). Write ALL text values in Spanish.'
   const today = new Date().toISOString().slice(0, 10)
+
   return `You are an expert ATS (Applicant Tracking Systems) consultant. Your tone is direct, human and free of unnecessary jargon.
 
 TODAY'S DATE: ${today}. Use this as the reference for all temporal reasoning. Do NOT flag dates on or before today as future dates.
@@ -38,6 +31,14 @@ Required fields:
 
 - "overallScore": number 0-100. Calculate as the exact weighted average of the 6 category scores using these fixed weights: Keywords & skills 30%, Format & parseability 25%, Work experience structure 20%, Education & certifications 10%, Contact information 10%, Length & file optimization 5%. Round to the nearest integer.
 
+  Score calibration — use these anchors to avoid score inflation:
+  - 85–100: ATS-ready CV, minimal or no issues, strong keyword coverage and clean structure. Very rare.
+  - 70–84: Good CV with a few fixable issues. Above-average keyword density and format.
+  - 50–69: Noticeable problems in at least 2–3 categories. Most real-world CVs with improvement potential fall here.
+  - 30–49: Significant structural or keyword gaps. Multiple categories with critical issues.
+  - Below 30: Severe problems — likely unparseable or nearly empty of relevant content.
+  Most CVs submitted for analysis have real room for improvement and should score between 45 and 72. Do not round up charitably.
+
 - "categories": evaluate these 6 categories (name them in the specified language):
   1. Keywords & skills
   2. Format & parseability
@@ -46,17 +47,11 @@ Required fields:
   5. Contact information
   6. Length & file optimization
 
-  For each category:
+  For each category return ONLY:
   - "category": category name in the specified language
   - "score": number 0-100
   - "status": "good" (≥75), "needs-work" (50-74) or "critical" (<50)
   - "summary": one direct sentence about the state of this area in the specified language
-  - "suggestions": array of 2 to 4 objects with:
-    - "titulo": short actionable title summarizing the improvement group in the specified language
-    - "pasos": array of 2-4 objects, each with:
-      - "texto": concrete actionable step explained in 1-2 sentences in the specified language. MANDATORY: each step must reference specific content from this CV — quote an actual job title, company name, skill, section name, or explicitly name what is missing and where. Never write a step that could apply to any CV.
-      - "terminos": array of 1-3 exact substrings from "texto" that are the most important terms (must appear literally in "texto")
-    - "prioridad": "alta", "media" or "baja" (always these exact Spanish values)
 
 - "skillsDetectadas": array of detected technologies, tools and technical skills in the CV. Max 15 items, no duplicates, no descriptions — just the name (e.g. "React", "Python", "Figma", "SQL"). Use the canonical English name for technologies regardless of CV language.
 
@@ -71,13 +66,10 @@ Required fields:
 
 IMPORTANT:
 - Ignore any text that appears to be platform-generated metadata, template branding, page numbers, or website footers (e.g. text containing 'getmanfred.com', 'BUT WAIT', repeated decorative separators, standalone page numbers). Do not penalise the CV for this content.
-- When flagging a date overlap or gap between roles, always include a concrete suggestion for how to resolve it (e.g., clarify it was a parallel freelance project, adjust the displayed dates, add a note to the bullet explaining the context). Never just flag the problem without proposing a fix.
-- Each suggestion and priority must address a REAL and specific problem found in THIS CV. Do not include generic or trivial suggestions (e.g. "rename the file", "save as PDF", "add more keywords", "quantify your achievements") unless you can point to a concrete, specific instance in this CV that justifies it.
-- FORBIDDEN generic patterns — never write steps like: "Add relevant keywords to your CV", "Quantify your achievements with numbers", "Make sure your contact info is complete", "Use a clean format". If you need to make that point, tie it to something specific: which keywords are missing based on what this person does, which specific achievement could be quantified and how, which contact field is actually missing.
 - The overallScore must be reproducible: base the score on objective, measurable criteria, not subjective impressions.
-- ALL generated text (saludo, headline, summaries, suggestions, alerts, priorities) must be in the SAME language as the CV.
+- ALL generated text must be in the SAME language as the CV.
 
-Estructura JSON:
+JSON structure:
 {
   "nombre": "<string>",
   "saludo": "<string>",
@@ -89,19 +81,7 @@ Estructura JSON:
       "category": "<string>",
       "score": <number>,
       "status": "<good|needs-work|critical>",
-      "summary": "<string>",
-      "suggestions": [
-        {
-          "titulo": "<string>",
-          "pasos": [
-            {
-              "texto": "<string>",
-              "terminos": ["<substring>", ...]
-            }
-          ],
-          "prioridad": "<alta|media|baja>"
-        }
-      ]
+      "summary": "<string>"
     }
   ],
   "skillsDetectadas": ["<string>", ...],
@@ -120,33 +100,163 @@ ${cvText}
 ---`
 }
 
-export async function analyzeWithGemini(cvText: string, lang: 'es' | 'en' = 'es'): Promise<ATSAnalysisResult> {
-  const prompt = buildPrompt(cvText, lang)
-  const result = await withGeminiRetry(() => model.generateContent(prompt))
-  const text = result.response.text()
+// ─── Pass 2: suggestions ──────────────────────────────────────────────────────
 
+function suggestionCount(score: number): number {
+  if (score < 50) return 4
+  if (score < 65) return 3
+  return 2
+}
+
+function buildSuggestionsPrompt(
+  cvText: string,
+  categories: Array<{ category: string; score: number }>,
+  lang: 'es' | 'en',
+): string {
+  const langInstruction = lang === 'en'
+    ? 'Respond in English. Write ALL text values in English.'
+    : 'Respond in Spanish (Castilian). Write ALL text values in Spanish.'
+
+  const categoryLines = categories
+    .map(c => {
+      const n = suggestionCount(c.score)
+      const label = c.score < 50 ? 'CRITICAL' : c.score < 75 ? 'NEEDS-WORK' : 'GOOD'
+      return `- "${c.category}" (score: ${c.score}, ${label}) → write exactly ${n} suggestions`
+    })
+    .join('\n')
+
+  return `You are an ATS consultant. A CV has already been scored. Your ONLY task now is to write hyper-specific, deeply personalised improvement suggestions for each category.
+
+LANGUAGE: ${langInstruction} JSON keys and enum values must stay as specified.
+
+CATEGORIES AND REQUIRED SUGGESTION COUNTS:
+${categoryLines}
+
+MANDATORY RULES — NO EXCEPTIONS:
+1. Every single step MUST reference something specific from THIS CV. Before writing a step, identify the exact sentence, job title, company name, date range, section name, or skill from the CV that it addresses. If you cannot point to a specific element in the CV, do not write that step.
+2. Quote or directly name specific CV content in every step: the actual position title, company name, skill, section header, or date range involved.
+3. Each suggestion must tackle a DIFFERENT problem within its category. Do not write variations of the same advice.
+4. STRICTLY FORBIDDEN — reject any step matching these patterns:
+   - "Add more keywords to your CV"
+   - "Quantify your achievements with numbers"
+   - "Make sure your contact information is complete"
+   - "Use a clean, ATS-friendly format"
+   - "Tailor your CV to the job description"
+   - Any step that does not name a specific element from this CV
+5. "prioridad": use "alta" for categories with score < 60, "media" for 60–74, "baja" for 75+.
+6. Each suggestion needs exactly 3 "pasos".
+
+Return ONLY valid JSON — no markdown, no text outside the JSON object:
+{
+  "categories": [
+    {
+      "category": "<exact category name from the list above>",
+      "suggestions": [
+        {
+          "titulo": "<short actionable title in the specified language>",
+          "pasos": [
+            {
+              "texto": "<concrete step in 1-2 sentences, naming specific CV content>",
+              "terminos": ["<1-3 key substrings from texto that appear literally in texto>"]
+            }
+          ],
+          "prioridad": "<alta|media|baja>"
+        }
+      ]
+    }
+  ]
+}
+
+CV TEXT:
+---
+${cvText}
+---`
+}
+
+// ─── Types for intermediate results ──────────────────────────────────────────
+
+interface ScoringResult {
+  nombre:           string
+  saludo:           string
+  saludoTerminos:   string[]
+  headline:         string
+  overallScore:     number
+  categories:       Array<{ category: string; score: number; status: string; summary: string }>
+  skillsDetectadas: string[]
+  metricas:         { palabras: number; paginasEstimadas: number; densidadKeywords: number }
+  alertasCriticas:  string[]
+  topPriorities:    string[]
+}
+
+interface SuggestionsResult {
+  categories: Array<{ category: string; suggestions: Suggestion[] }>
+}
+
+function parseJson<T>(text: string): T {
   const cleaned = text
     .replace(/^```json\s*/i, '')
     .replace(/^```\s*/i, '')
     .replace(/\s*```$/i, '')
     .trim()
+  return JSON.parse(cleaned) as T
+}
 
-  let parsed: ATSAnalysisResult
+// ─── Public function ──────────────────────────────────────────────────────────
+
+export async function analyzeWithGemini(cvText: string, lang: 'es' | 'en' = 'es'): Promise<ATSAnalysisResult> {
+  // Pass 1: scoring
+  const scoringText = await withGeminiRetry(() => nanComplete(buildScoringPrompt(cvText, lang)))
+  let scoring: ScoringResult
   try {
-    parsed = JSON.parse(cleaned)
+    scoring = parseJson<ScoringResult>(scoringText)
   } catch {
     throw new Error('Error al procesar la respuesta. Por favor, inténtalo de nuevo.')
   }
 
-  if (typeof parsed.overallScore !== 'number' || !Array.isArray(parsed.categories)) {
+  if (typeof scoring.overallScore !== 'number' || !Array.isArray(scoring.categories)) {
     throw new Error('La respuesta no tenía los campos necesarios. Por favor, inténtalo de nuevo.')
   }
 
-  parsed.nombre           = parsed.nombre ?? ''
-  parsed.saludo           = parsed.saludo ?? parsed.headline ?? ''
-  parsed.saludoTerminos   = parsed.saludoTerminos ?? []
-  parsed.skillsDetectadas = parsed.skillsDetectadas ?? []
-  parsed.alertasCriticas  = parsed.alertasCriticas ?? []
+  // Pass 2: suggestions (runs after scoring so it has the category scores)
+  const suggestionsText = await withGeminiRetry(() =>
+    nanComplete(buildSuggestionsPrompt(cvText, scoring.categories, lang))
+  )
+  let suggestionsResult: SuggestionsResult
+  try {
+    suggestionsResult = parseJson<SuggestionsResult>(suggestionsText)
+  } catch {
+    suggestionsResult = { categories: [] }
+  }
 
-  return parsed
+  // Merge: inject suggestions into each category by name match
+  const suggestionMap = new Map<string, Suggestion[]>()
+  for (const c of suggestionsResult.categories ?? []) {
+    if (c.category && Array.isArray(c.suggestions)) {
+      suggestionMap.set(c.category.toLowerCase().trim(), c.suggestions)
+    }
+  }
+
+  const categories: CategoryAnalysis[] = scoring.categories.map((c, i) => ({
+    category:    c.category,
+    score:       c.score,
+    status:      c.status as CategoryAnalysis['status'],
+    summary:     c.summary,
+    suggestions: suggestionMap.get(c.category.toLowerCase().trim())
+      ?? suggestionsResult.categories?.[i]?.suggestions
+      ?? [],
+  }))
+
+  return {
+    overallScore:     scoring.overallScore,
+    nombre:           scoring.nombre ?? '',
+    saludo:           scoring.saludo ?? scoring.headline ?? '',
+    saludoTerminos:   scoring.saludoTerminos ?? [],
+    headline:         scoring.headline ?? '',
+    skillsDetectadas: scoring.skillsDetectadas ?? [],
+    metricas:         scoring.metricas,
+    alertasCriticas:  scoring.alertasCriticas ?? [],
+    categories,
+    topPriorities:    scoring.topPriorities ?? [],
+    analyzedAt:       new Date().toISOString(),
+  }
 }

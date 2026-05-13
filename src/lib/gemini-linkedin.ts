@@ -1,16 +1,6 @@
-import { GoogleGenerativeAI } from '@google/generative-ai'
 import type { LinkedInResult } from '@/types/linkedin'
 import { withGeminiRetry } from '@/lib/gemini-retry'
-
-if (!process.env.GEMINI_API_KEY) {
-  throw new Error('GEMINI_API_KEY environment variable is not set.')
-}
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
-const model = genAI.getGenerativeModel({
-  model: 'gemini-3-flash-preview',
-  generationConfig: { temperature: 0 },
-})
+import { nanComplete } from '@/lib/nan-client'
 
 function buildLinkedInPrompt(profileText: string, lang: 'es' | 'en'): string {
   const langInstruction = lang === 'en'
@@ -34,6 +24,13 @@ Required fields:
 
 - "overallScore": number 0-100. Calculate as the exact weighted average of the 6 category scores using these fixed weights: Titular y propuesta de valor 25%, Resumen/About 20%, Experiencia y logros 25%, Habilidades y validaciones 15%, Formación y certificaciones 5%, Completitud y visibilidad 10%. Round to the nearest integer.
 
+  Score calibration — use these anchors to avoid score inflation:
+  - 85–100: Exceptional profile, fully optimised, strong keyword presence, quantified achievements, all sections complete. Very rare.
+  - 70–84: Strong profile with minor gaps. Competitive but with a few areas to polish.
+  - 50–69: Average profile with noticeable weaknesses in at least 2–3 categories.
+  - Below 50: Significant gaps — missing sections, weak headline, no quantified achievements, low visibility.
+  Most LinkedIn profiles have real room for improvement and should score between 45 and 72. Do not round up charitably.
+
 - "completitud": number 0-100 estimating how complete the profile is (presence of photo mention, headline, about, experience with bullets, education, skills, recommendations, contact info).
 
 - "skillsDetectadas": array of up to 15 skills and technologies detected in the profile. Use canonical English names for technologies.
@@ -51,9 +48,9 @@ Required fields:
   - "score": number 0-100
   - "status": "good" (≥75), "needs-work" (50-74) or "critical" (<50)
   - "summary": one direct sentence about the state of this area in the specified language
-  - "suggestions": array of 2 to 3 objects with:
+  - "suggestions": array of exactly 3 objects with:
     - "titulo": short actionable title in the specified language
-    - "pasos": array of 2-3 concrete steps, each with:
+    - "pasos": array of exactly 3 concrete steps, each with:
       - "texto": specific action in the specified language
       - "terminos": array of 1-3 exact substrings from "texto" to bold
     - "prioridad": "alta", "media" or "baja"
@@ -121,8 +118,7 @@ function deduplicateProfileText(text: string): string {
 export async function analyzeLinkedIn(profileText: string, lang: 'es' | 'en' = 'es'): Promise<LinkedInResult> {
   const cleanedText = deduplicateProfileText(profileText)
   const prompt = buildLinkedInPrompt(cleanedText, lang)
-  const result = await withGeminiRetry(() => model.generateContent(prompt))
-  const text = result.response.text()
+  const text = await withGeminiRetry(() => nanComplete(prompt))
 
   const cleaned = text
     .replace(/^```json\s*/i, '')

@@ -11,7 +11,8 @@ function isRetryable(error: unknown): boolean {
     msg.includes('500') ||
     msg.includes('Resource exhausted') ||
     msg.includes('UNAVAILABLE') ||
-    msg.includes('quota')
+    msg.includes('quota') ||
+    msg.includes('NaN API error 5')
   )
 }
 

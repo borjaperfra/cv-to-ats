@@ -82,16 +82,18 @@ export async function POST(request: NextRequest) {
   const dailyStatKey = todayKey()
   const dailyLimit = getDailyLimit()
   try {
-    const { data: dailyStat } = await getSupabase()
-      .from('stats')
-      .select('value')
-      .eq('id', dailyStatKey)
-      .maybeSingle()
-    if ((dailyStat?.value ?? 0) >= dailyLimit) {
-      return NextResponse.json(
-        { error: 'El analizador ha alcanzado el límite diario de CVs. Vuelve mañana.', code: 'DAILY_LIMIT_REACHED' },
-        { status: 429 }
-      )
+    if (process.env.NODE_ENV !== 'development') {
+      const { data: dailyStat } = await getSupabase()
+        .from('stats')
+        .select('value')
+        .eq('id', dailyStatKey)
+        .maybeSingle()
+      if ((dailyStat?.value ?? 0) >= dailyLimit) {
+        return NextResponse.json(
+          { error: 'El analizador ha alcanzado el límite diario de CVs. Vuelve mañana.', code: 'DAILY_LIMIT_REACHED' },
+          { status: 429 }
+        )
+      }
     }
   } catch {
     // Si falla la consulta del límite, dejamos pasar para no bloquear usuarios

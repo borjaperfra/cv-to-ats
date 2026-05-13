@@ -1,20 +1,10 @@
-import { GoogleGenerativeAI } from '@google/generative-ai'
 import type { CVData, SkillCategories } from '@/types/cv'
 import type { Suggestion } from '@/types/analysis'
 import type { CvLang } from '@/lib/cv-labels'
 import { withGeminiRetry } from '@/lib/gemini-retry'
+import { nanComplete } from '@/lib/nan-client'
 
-if (!process.env.GEMINI_API_KEY) {
-  throw new Error('GEMINI_API_KEY environment variable is not set.')
-}
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
-const model = genAI.getGenerativeModel({
-  model: 'gemini-3-flash-preview',
-  generationConfig: { temperature: 0 },
-})
-
-// ─── Types returned by Gemini (no IDs) ───────────────────────────────────────
+// ─── Types returned by NaN (no IDs) ──────────────────────────────────────────
 
 type RawExperiencia = Omit<CVData['experiencia'][0], 'id'>
 type RawEducacion   = Omit<CVData['educacion'][0], 'id'>
@@ -161,7 +151,7 @@ function hydrateCVData(raw: RawCVData): CVData {
   }
 }
 
-function parseGeminiJson(text: string): RawCVData {
+function parseNaNJson(text: string): RawCVData {
   const cleaned = text
     .replace(/^```json\s*/i, '')
     .replace(/^```\s*/i, '')
@@ -203,8 +193,8 @@ ${JSON.stringify(cvData, null, 2)}
 // ─── Public functions ─────────────────────────────────────────────────────────
 
 export async function parseCVToEditor(cvText: string): Promise<CVData> {
-  const result = await withGeminiRetry(() => model.generateContent(PARSE_PROMPT(cvText)))
-  const raw = parseGeminiJson(result.response.text())
+  const text = await withGeminiRetry(() => nanComplete(PARSE_PROMPT(cvText)))
+  const raw = parseNaNJson(text)
   return hydrateCVData(raw)
 }
 
@@ -221,8 +211,8 @@ export async function improveCVWithSuggestions(
     habilidades:  cvData.habilidades,
     idiomas:      cvData.idiomas.map(({ id: _id, ...rest }) => rest),
   }
-  const result = await withGeminiRetry(() => model.generateContent(IMPROVE_PROMPT(raw, suggestions)))
-  const improved = parseGeminiJson(result.response.text())
+  const text = await withGeminiRetry(() => nanComplete(IMPROVE_PROMPT(raw, suggestions)))
+  const improved = parseNaNJson(text)
   improved.personalInfo = raw.personalInfo
   return hydrateCVData(improved)
 }
@@ -237,8 +227,8 @@ export async function translateCVContent(cvData: CVData, targetLang: CvLang): Pr
     habilidades:  cvData.habilidades,
     idiomas:      cvData.idiomas.map(({ id: _id, ...rest }) => rest),
   }
-  const result = await withGeminiRetry(() => model.generateContent(TRANSLATE_PROMPT(raw, targetLang)))
-  const translated = parseGeminiJson(result.response.text())
+  const text = await withGeminiRetry(() => nanComplete(TRANSLATE_PROMPT(raw, targetLang)))
+  const translated = parseNaNJson(text)
   translated.personalInfo = raw.personalInfo
   translated.habilidades = raw.habilidades
   translated.idiomas = raw.idiomas
