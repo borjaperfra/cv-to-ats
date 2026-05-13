@@ -22,12 +22,12 @@ Required fields:
 
 - "matchScore": number 0-100 representing how well the CV matches this specific job. Be objective: base it on keyword overlap, required experience, skills alignment, and seniority fit.
 
-  Score calibration — use these anchors to avoid score inflation:
-  - 85–100: Near-perfect match. CV covers almost all required skills, correct seniority, strong keyword overlap. Very rare.
-  - 65–84: Good match with minor gaps. Candidate is competitive but missing a few important requirements.
-  - 40–64: Partial match. Noticeable gaps in skills, experience level, or keyword coverage. Needs meaningful CV tailoring.
-  - Below 40: Poor match. The CV lacks multiple key requirements or the seniority is clearly off.
-  Most CVs analyzed against a real job description have meaningful gaps and should score between 40 and 70. Do not inflate scores out of optimism.
+  Score calibration — use these anchors for balanced, objective scoring:
+  - 85–100: Near-perfect match. CV covers almost all required skills, correct seniority, strong keyword overlap.
+  - 68–84: Good match with minor gaps. Candidate is competitive but missing a few requirements.
+  - 45–67: Partial match. Some gaps in skills, experience level, or keyword coverage. CV tailoring would help.
+  - Below 45: Poor match. The CV lacks several key requirements or the seniority is clearly off.
+  Aim for accuracy: reward genuine alignment, but flag real gaps without exaggerating them.
 
 - "resumenMatch": 2-3 sentence paragraph in the specified language. Start with a direct overall assessment of the match, then describe the main strengths and the most critical gaps. Be specific about elements from both the CV and the JD.
 

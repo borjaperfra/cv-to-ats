@@ -31,13 +31,13 @@ Required fields:
 
 - "overallScore": number 0-100. Calculate as the exact weighted average of the 6 category scores using these fixed weights: Keywords & skills 30%, Format & parseability 25%, Work experience structure 20%, Education & certifications 10%, Contact information 10%, Length & file optimization 5%. Round to the nearest integer.
 
-  Score calibration — use these anchors to avoid score inflation:
-  - 85–100: ATS-ready CV, minimal or no issues, strong keyword coverage and clean structure. Very rare.
-  - 70–84: Good CV with a few fixable issues. Above-average keyword density and format.
-  - 50–69: Noticeable problems in at least 2–3 categories. Most real-world CVs with improvement potential fall here.
-  - 30–49: Significant structural or keyword gaps. Multiple categories with critical issues.
-  - Below 30: Severe problems — likely unparseable or nearly empty of relevant content.
-  Most CVs submitted for analysis have real room for improvement and should score between 45 and 72. Do not round up charitably.
+  Score calibration — use these anchors for balanced, objective scoring:
+  - 85–100: ATS-ready CV with minimal issues, strong keyword coverage and clean structure.
+  - 72–84: Good CV with a few fixable issues. Solid keyword density and format.
+  - 55–71: Some noticeable problems in 1–2 categories. Room for improvement but a functional CV. Most real-world CVs fall here.
+  - 35–54: Significant gaps in structure, keywords, or multiple categories.
+  - Below 35: Severe problems — likely unparseable or missing key content.
+  Aim for accuracy: do not deflate scores for minor issues, but do not ignore real problems either.
 
 - "categories": evaluate these 6 categories (name them in the specified language):
   1. Keywords & skills

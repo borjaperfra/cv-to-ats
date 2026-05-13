@@ -24,12 +24,12 @@ Required fields:
 
 - "overallScore": number 0-100. Calculate as the exact weighted average of the 6 category scores using these fixed weights: Titular y propuesta de valor 25%, Resumen/About 20%, Experiencia y logros 25%, Habilidades y validaciones 15%, Formación y certificaciones 5%, Completitud y visibilidad 10%. Round to the nearest integer.
 
-  Score calibration — use these anchors to avoid score inflation:
-  - 85–100: Exceptional profile, fully optimised, strong keyword presence, quantified achievements, all sections complete. Very rare.
-  - 70–84: Strong profile with minor gaps. Competitive but with a few areas to polish.
-  - 50–69: Average profile with noticeable weaknesses in at least 2–3 categories.
-  - Below 50: Significant gaps — missing sections, weak headline, no quantified achievements, low visibility.
-  Most LinkedIn profiles have real room for improvement and should score between 45 and 72. Do not round up charitably.
+  Score calibration — use these anchors for balanced, objective scoring:
+  - 85–100: Exceptional profile, fully optimised, strong keywords, quantified achievements, all sections complete.
+  - 72–84: Strong profile with minor gaps. Competitive with a few areas to polish.
+  - 55–71: Average profile with some weaknesses in 1–2 categories. Functional but improvable.
+  - Below 55: Significant gaps — missing sections, weak headline, no quantified achievements, or low visibility.
+  Aim for accuracy: do not deflate scores for minor issues, but do not ignore real problems either.
 
 - "completitud": number 0-100 estimating how complete the profile is (presence of photo mention, headline, about, experience with bullets, education, skills, recommendations, contact info).
 
