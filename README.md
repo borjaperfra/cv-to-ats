@@ -1,54 +1,130 @@
-# ATSKiller — Manfred
+# ATS Killer — by Manfred
 
-Herramienta gratuita para analizar CVs contra sistemas ATS (Applicant Tracking Systems). Desarrollada por Manfred para ayudar a candidatos a mejorar sus CVs antes de que lleguen a un proceso de selección.
+Free tool to analyze CVs against ATS (Applicant Tracking Systems). Built by [Manfred](https://www.getmanfred.com) to help candidates improve their CVs before they reach a selection process.
 
-## Qué hace
+## What it does
 
-- **Análisis ATS completo**: sube un CV en PDF y obtén una puntuación detallada por categorías (keywords, formato, experiencia, educación, contacto, longitud)
-- **Feedback accionable**: sugerencias concretas organizadas por categoría, con pasos específicos para cada mejora
-- **Detección de alertas críticas**: columnas múltiples, tablas complejas, caracteres decorativos que rompen el parsing ATS
-- **Match con oferta**: pega el texto, una URL o sube un archivo de la oferta y calcula el encaje del CV con la posición; incluye keywords presentes y faltantes
-- **Análisis de LinkedIn**: analiza perfiles de LinkedIn completos con puntuación por categorías (titular, resumen, experiencia, habilidades, formación, completitud) y sugerencias accionables
-- **Editor de CV**: editor visual con plantilla Harvard; exporta a PDF (captura pixel-perfect) o Markdown; soporta importar el CV analizado y aplicar las recomendaciones ATS con IA
-- **Traducción de CV**: traduce el contenido del CV entre inglés y español con IA, manteniendo datos personales y habilidades intactos
-- **Historial**: guarda automáticamente los últimos análisis en el navegador
-- **Multiidioma**: detecta si el CV está en español o inglés y responde en el mismo idioma; selector manual disponible
+**Core feature — ATS analysis**: upload a CV (PDF, DOCX, TXT or MD) and get a score from 0 to 100 broken down into 6 weighted categories:
 
-## Stack
+| Category | Weight | What it checks |
+|---|---|---|
+| Keywords & technical skills | 30% | Explicitly named technologies, languages, frameworks, tools, certifications |
+| Format & parseability | 25% | Multi-column layouts, merged tables, image-based text, non-standard bullets |
+| Work experience structure | 20% | Company name, job title, dates, and description present per role |
+| Education & certifications | 10% | Institution, degree, and year complete per entry |
+| Contact information | 10% | Email, phone, city/country, LinkedIn or portfolio |
+| Length & optimization | 5% | Estimated page count (optimal: 1–2 pages) |
 
-- **Next.js 14** (App Router) — frontend y API routes
-- **Gemini 2.5 Flash** — motor de análisis, feedback, match, LinkedIn y editor
-- **Supabase** — almacenamiento de feedback e issues de beta
-- **pdf-parse** — extracción de texto de PDFs (límite: 3 MB, 3 páginas)
-- **html2canvas + jsPDF** — exportación PDF pixel-perfect desde el editor
-- **Tailwind CSS** — sistema de diseño basado en la identidad de Manfred
-- **Railway** — despliegue en producción
+The overall score is computed server-side from fixed weights — the AI only scores each category.
 
-## Variables de entorno
+**Additional tools:**
 
-```bash
-GEMINI_API_KEY=              # Clave de Google AI Studio
-SUPABASE_URL=                # URL del proyecto Supabase (privada)
-SUPABASE_SERVICE_ROLE_KEY=   # Clave de servicio Supabase
-AUTH_USERNAME=               # Usuario para el login de admin
-AUTH_PASSWORD=               # Contraseña para el login de admin
-AUTH_SECRET=                 # Secreto para firmar la cookie de sesión
+- **CV–job match** (`/match`): paste or upload a job offer and calculate alignment with the CV; surfaces present and missing keywords
+- **CV editor** (`/editor`): visual editor with Harvard template; exports to PDF (via `html2canvas` + `jsPDF`), DOCX and Markdown; supports importing an analyzed CV and applying ATS recommendations with AI
+- **LinkedIn analysis** (`/linkedin`): paste a LinkedIn profile and get a score by section (headline, summary, experience, skills, education, completeness)
+- **CV anonymizer** (`/anonymize`): strips personal data (name, email, phone, company names, etc.) while keeping professional content intact
+- **Version comparison** (`/results/compare`): side-by-side comparison of two CV versions
+- **Multilingual**: detects whether the CV is in Spanish or English and responds in the same language; manual toggle available
+- **Local history**: last analyses saved automatically in the browser (localStorage)
+- **Methodology page** (`/como-funciona`): explains scoring dimensions and what ATS thresholds mean in practice
+
+---
+
+## Tech stack
+
+| Layer | Technology |
+|---|---|
+| Framework | Next.js 14.2 (App Router, `src/` directory) |
+| AI | NaN API — model `gemma4` (OpenAI-compatible endpoint) |
+| Database | Supabase (tables: `feedback`, `issues`; RPC: `increment_stat`) |
+| PDF parsing | `pdf-parse` |
+| DOCX parsing | `mammoth` |
+| PDF export | `html2canvas` + `jsPDF` |
+| DOCX export | `docx` |
+| Styling | Tailwind CSS (Manfred design tokens) |
+| Deployment | Railway |
+
+---
+
+## Project structure
+
+```
+src/
+├── app/
+│   ├── api/
+│   │   ├── analyze/          # ATS scoring endpoint
+│   │   ├── match/            # CV–job match endpoint
+│   │   ├── anonymize/        # CV anonymization endpoint
+│   │   ├── linkedin/         # LinkedIn analysis endpoint
+│   │   ├── editor/parse/     # CV import for editor
+│   │   └── feedback/         # User feedback (Supabase)
+│   ├── results/              # ATS results page + version compare
+│   ├── match/                # Job match UI + results
+│   ├── editor/               # CV editor
+│   ├── linkedin/             # LinkedIn analysis UI + results
+│   ├── como-funciona/        # Scoring methodology explainer
+│   └── admin/                # Internal panel (feedback, issues, stats)
+├── components/
+│   ├── Header.tsx            # Main nav (hamburger menu on mobile)
+│   └── results/              # Score header, suggestion cards, export button
+└── lib/
+    ├── nan-client.ts         # NaN API client (temperature: 0, seed: 42)
+    ├── analysis.ts           # ATS scoring prompt + server-side score calculation
+    ├── match-ai.ts           # Job match AI logic
+    ├── editor-ai.ts          # Editor AI logic
+    ├── linkedin-ai.ts        # LinkedIn analysis AI logic
+    ├── extractors.ts         # PDF / DOCX / TXT extraction
+    ├── history.ts            # localStorage analysis history
+    ├── rate-limit.ts         # In-memory rate limiter (per IP)
+    └── supabase.ts           # Supabase client (server-side only)
 ```
 
-## Desarrollo local
+---
+
+## Local development
 
 ```bash
 npm install
 npm run dev
 ```
 
-La app arranca en `http://localhost:3000`.
+App runs at `http://localhost:3000`.
 
-El panel de administración está en `/admin/feedback` (requiere login).
+Copy `.env.local.example` to `.env.local` and fill in your values (see required variables below). The admin panel is at `/admin/feedback` and requires login.
 
-## Seguridad y límites
+---
 
-- Subida de CVs limitada a PDF, máximo 3 MB y 3 páginas
-- Rate limiting en todos los endpoints de análisis (10 req/min por IP; 5 req/3min en login)
-- Timeout de 50 s en llamadas a Gemini para evitar bloqueos en Railway (plan Hobby, límite 60 s)
-- Variables sensibles nunca expuestas al cliente (`NEXT_PUBLIC_` no se usa para secrets)
+## Environment variables
+
+All secrets are server-side only — none are prefixed with `NEXT_PUBLIC_`.
+
+```bash
+NAN_API_KEY=                 # NaN API key (AI provider)
+SUPABASE_URL=                # Supabase project URL
+SUPABASE_SERVICE_ROLE_KEY=   # Supabase service role key
+AUTH_USERNAME=               # Admin panel username
+AUTH_PASSWORD=               # Admin panel password
+AUTH_SECRET=                 # Session cookie signing secret
+```
+
+Configure these in `.env.local` for local development and in Railway environment variables for production.
+
+---
+
+## Security & limits
+
+- Accepted formats: PDF, DOCX, DOC, TXT, MD — max 3 MB, max 5 pages
+- Rate limiting on all analysis endpoints: 10 requests/min per IP; 3 requests/min on `/analyze`
+- Analysis timeout: 85 s (Railway limit awareness)
+- No secrets exposed to the client — `NEXT_PUBLIC_` prefix not used for any sensitive variable
+- CV text is never stored — only usage counters are written to Supabase
+
+---
+
+## Git workflow
+
+- `master` → production (Railway auto-deploys from here). Never push directly.
+- `dev` → working branch. All changes go here first.
+- Open a PR from `dev` → `master` for every change. Merge only after review.
+
+Commits follow [Conventional Commits](https://www.conventionalcommits.org/): `fix:`, `feat:`, `improve:`, `refactor:`, `chore:`, `docs:`, `security:`.
