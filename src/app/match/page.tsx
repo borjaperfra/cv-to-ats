@@ -45,11 +45,37 @@ function formatLocation(remotePercentage: number, locations: string[]): string {
   return city ? `Presencial · ${city}` : 'Presencial'
 }
 
-function preScoreOffer(offer: ManfredOffer, skills: string[]): number {
-  if (!skills.length) return 0
+const TITLE_STOP = new Set(['and', 'the', 'for', 'with', 'lead', 'head'])
+
+function titleWords(s: string): string[] {
+  return s.toLowerCase().split(/[\s/,\-]+/).filter(w => w.length >= 4 && !TITLE_STOP.has(w))
+}
+
+function preScoreOffer(offer: ManfredOffer, skills: string[], cvRole: string): number {
+  const positionLower = offer.position.toLowerCase()
+
+  if (cvRole) {
+    // Primary signal (70 pts): bidirectional role-title matching
+    // The highlights are company perks (emojis/benefits), not tech requirements — ignore them
+    const offerWords = titleWords(offer.position)
+    const roleWords = titleWords(cvRole)
+    let roleScore = 0
+    if (offerWords.length > 0 && roleWords.length > 0) {
+      const offerInRole = offerWords.filter(w => cvRole.toLowerCase().includes(w)).length / offerWords.length
+      const roleInOffer = roleWords.filter(w => positionLower.includes(w)).length / roleWords.length
+      roleScore = Math.max(offerInRole, roleInOffer) * 70
+    }
+    // Secondary signal (30 pts): skills that appear verbatim in the offer title
+    const skillHits = skills.filter(s => positionLower.includes(s.toLowerCase())).length
+    const skillScore = Math.min(skillHits / 3, 1) * 30
+    return Math.round(Math.min(roleScore + skillScore, 100))
+  }
+
+  // Fallback when no role info: skills vs position+highlights, capped denominator
   const haystack = [offer.position, ...offer.highlights].join(' ').toLowerCase()
   const hits = skills.filter(s => haystack.includes(s.toLowerCase())).length
-  return Math.round((hits / skills.length) * 100)
+  if (!hits) return 0
+  return Math.round(Math.min(hits / Math.min(skills.length, 8), 1) * 100)
 }
 
 const LOADING_MESSAGES = {
@@ -189,6 +215,7 @@ export default function MatchPage() {
   const [isDraggingCv, setIsDraggingCv] = useState(false)
   const [loadingSkills, setLoadingSkills] = useState(false)
   const [locationWarning, setLocationWarning] = useState<string | null>(null)
+  const [cvRole, setCvRole] = useState('')
 
   // JD state
   const [jdText, setJdText] = useState('')
@@ -229,6 +256,8 @@ export default function MatchPage() {
         const matchSkills = sessionStorage.getItem('matchSkills')
         if (matchSkills) setSkillsDetectadas(JSON.parse(matchSkills))
       }
+      const storedRole = sessionStorage.getItem('cvRole')
+      if (storedRole) setCvRole(storedRole)
     } catch { /* ignore */ }
 
     const pendingUrl = sessionStorage.getItem('pendingMatchUrl')
@@ -252,12 +281,14 @@ export default function MatchPage() {
     }
     setLoadingSkills(true)
     setSkillsDetectadas([])
+    setCvRole('')
     setLocationWarning(null)
     const fd = new FormData()
     fd.append('cvFile', cvFile)
     fetch('/api/cv-preview', { method: 'POST', body: fd })
-      .then(r => r.ok ? r.json() : { skills: [], country: null })
-      .then(({ skills, country }: { skills: string[]; country: string | null }) => {
+      .then(r => r.ok ? r.json() : { role: '', skills: [], country: null })
+      .then(({ role, skills, country }: { role: string; skills: string[]; country: string | null }) => {
+        if (role) { setCvRole(role); sessionStorage.setItem('cvRole', role) }
         if (Array.isArray(skills) && skills.length > 0) {
           setSkillsDetectadas(skills)
           sessionStorage.setItem('matchSkills', JSON.stringify(skills))
@@ -424,7 +455,7 @@ export default function MatchPage() {
                 </div>
               </div>
               <button
-                onClick={() => { setHasCachedCv(false); setSkillsDetectadas([]); setLocationWarning(null); sessionStorage.removeItem('matchSkills') }}
+                onClick={() => { setHasCachedCv(false); setSkillsDetectadas([]); setCvRole(''); setLocationWarning(null); sessionStorage.removeItem('matchSkills'); sessionStorage.removeItem('cvRole') }}
                 className="font-sans text-xs text-gray-400 hover:text-gray-600 underline underline-offset-2"
               >
                 {L.change}
@@ -611,14 +642,14 @@ export default function MatchPage() {
 
         {/* Manfred offers */}
         {(loadingOffers || manfredOffers.length > 0) && (() => {
-          const hasSkills = skillsDetectadas.length > 0
-          const sorted = hasSkills
-            ? [...manfredOffers].sort((a, b) => preScoreOffer(b, skillsDetectadas) - preScoreOffer(a, skillsDetectadas))
+          const hasProfile = skillsDetectadas.length > 0 || cvRole.length > 0
+          const sorted = hasProfile
+            ? [...manfredOffers].sort((a, b) => preScoreOffer(b, skillsDetectadas, cvRole) - preScoreOffer(a, skillsDetectadas, cvRole))
             : manfredOffers
           return (
             <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
               <p className="font-sans font-[700] text-xs uppercase tracking-widest text-gray-400 mb-4">
-                {hasSkills ? 'Ofertas activas en Manfred · ordenadas por afinidad' : 'Ofertas activas en Manfred'}
+                {hasProfile ? 'Ofertas activas en Manfred · ordenadas por afinidad' : 'Ofertas activas en Manfred'}
               </p>
               {loadingOffers || loadingSkills ? (
                 <div className="flex items-center gap-2 py-4">
@@ -636,7 +667,7 @@ export default function MatchPage() {
                     {sorted.map(offer => {
                       const salary = formatSalary(offer)
                       const location = formatLocation(offer.remotePercentage, offer.locations ?? [])
-                      const matchPct = preScoreOffer(offer, skillsDetectadas)
+                      const matchPct = preScoreOffer(offer, skillsDetectadas, cvRole)
                       const ms = matchBadgeStyle(matchPct)
                       const offerHref = `https://www.getmanfred.com/ofertas-empleo/${offer.id}/${offer.slug}`
                       return (
@@ -654,7 +685,7 @@ export default function MatchPage() {
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <p className="font-sans font-[700] text-sm text-navy leading-snug">{offer.position}</p>
-                                {hasSkills && (
+                                {hasProfile && (
                                   <span className="font-sans font-[700] text-[10px] px-1.5 py-0.5 rounded-full"
                                     style={{ backgroundColor: ms.bg, color: ms.color, border: `1px solid ${ms.border}` }}>
                                     {matchPct}%

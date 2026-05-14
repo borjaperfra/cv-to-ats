@@ -26,25 +26,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ skills: [], country: null })
     }
 
-    const prompt = `Extract two things from this CV text:
+    const prompt = `Extract three things from this CV text:
 
-1. A flat list of concrete technical skills: programming languages, frameworks, databases, cloud platforms, tools, methodologies. Be specific (e.g. "React" not "front-end"). Max 25 items.
-2. The country where this person currently resides or works. Look at address, phone prefix (+34 = Spain), recent job locations, city names. Return the English country name (e.g. "Spain", "France", "Germany"), or null if genuinely unknown.
+1. The person's current or most recent job title / professional role as a short English string (e.g. "Analytics Engineer", "Backend Developer", "Product Manager", "Data Scientist"). One title only, no seniority prefix unless it changes the role.
+2. A flat list of concrete technical skills: programming languages, frameworks, databases, cloud platforms, tools, methodologies. Be specific (e.g. "React" not "front-end"). Max 25 items.
+3. The country where this person currently resides or works. Look at address, phone prefix (+34 = Spain), recent job locations, city names. Return the English country name (e.g. "Spain", "France", "Germany"), or null if genuinely unknown.
 
-Return ONLY valid JSON with no extra text: {"skills":["skill1","skill2"],"country":"Spain"}
+Return ONLY valid JSON with no extra text: {"role":"Analytics Engineer","skills":["python","sql","dbt"],"country":"Spain"}
 
 CV TEXT:
 ${cvText.slice(0, 6000)}`
 
     const raw = await withGeminiRetry(() => nanComplete(prompt))
-    const parsed = JSON.parse(raw) as { skills?: unknown; country?: unknown }
+    const parsed = JSON.parse(raw) as { role?: unknown; skills?: unknown; country?: unknown }
 
+    const role = typeof parsed.role === 'string' ? parsed.role.trim() : ''
     const skills = Array.isArray(parsed.skills)
       ? (parsed.skills as unknown[]).filter((s): s is string => typeof s === 'string').slice(0, 25)
       : []
     const country = typeof parsed.country === 'string' ? parsed.country : null
 
-    return NextResponse.json({ skills, country })
+    return NextResponse.json({ role, skills, country })
   } catch {
     return NextResponse.json({ skills: [], country: null })
   }
