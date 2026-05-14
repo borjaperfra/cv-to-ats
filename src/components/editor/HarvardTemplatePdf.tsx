@@ -1,8 +1,9 @@
-import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
+import { Document, Page, Text, View, StyleSheet, Link } from '@react-pdf/renderer'
 import type { CVData, SkillCategories } from '@/types/cv'
 import { CV_TEMPLATE_LABELS, type CvLang } from '@/lib/cv-labels'
 
 const pt = (mm: number) => mm * 2.835
+const toHref = (url: string) => /^https?:\/\//.test(url) ? url : `https://${url}`
 
 const C = {
   text:     '#333333',
@@ -32,6 +33,7 @@ const s = StyleSheet.create({
   namePlaceholder: { fontSize: 28, fontFamily: 'Helvetica-Bold', color: '#cccccc' },
   cargo:           { fontSize: 8, color: C.gray, letterSpacing: 0.4, marginBottom: 3 },
   contact:         { fontSize: 7.5, color: C.light },
+  contactLink:     { fontSize: 7.5, color: C.light, textDecoration: 'none' },
 
   // ── Section header ───────────────────────────────────────
   sectionHeader: { flexDirection: 'row', alignItems: 'center', marginTop: pt(4), marginBottom: pt(3) },
@@ -121,7 +123,18 @@ export default function HarvardTemplatePdf({ data, lang = 'en' }: { data: CVData
           </View>
           {p.cargo ? <Text style={s.cargo}>{p.cargo}</Text> : null}
           {contactParts.length > 0 && (
-            <Text style={s.contact}>{contactParts.join('  |  ')}</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', alignItems: 'center' }}>
+              {contactParts.flatMap((part, idx) => {
+                const isLink = part === p.linkedin || part === p.website
+                const sep = idx < contactParts.length - 1
+                  ? [<Text key={`sep-${idx}`} style={s.contact}>{'  |  '}</Text>]
+                  : []
+                const el = isLink
+                  ? <Link key={idx} src={toHref(part)} style={s.contactLink}>{part}</Link>
+                  : <Text key={idx} style={s.contact}>{part}</Text>
+                return [el, ...sep]
+              })}
+            </View>
           )}
         </View>
 
@@ -176,7 +189,7 @@ export default function HarvardTemplatePdf({ data, lang = 'en' }: { data: CVData
             {idx === 0 && <SectionHeader title={L.projects} />}
             <View style={s.rowSpaced}>
               <Text style={s.company}>{proj.nombre}</Text>
-              {proj.url ? <Text style={s.projUrl}>{proj.url}</Text> : null}
+              {proj.url ? <Link src={toHref(proj.url)} style={[s.projUrl, { textDecoration: 'none' }]}>{proj.url}</Link> : null}
             </View>
             {proj.descripcion ? <Text style={s.projDesc}>{proj.descripcion}</Text> : null}
           </View>
