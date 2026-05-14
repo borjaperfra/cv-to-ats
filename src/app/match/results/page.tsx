@@ -333,8 +333,10 @@ export default function MatchResultsPage() {
                     {L.downloadPdf}
                   </button>
                   {isMobile && (
-                    <p className="font-sans text-[10px] text-gray-400 leading-tight text-right">
-                      {lang === 'es' ? <>Selecciona &ldquo;Guardar como PDF&rdquo;</> : <>Select &ldquo;Save as PDF&rdquo;</>}
+                    <p className="font-sans text-[10px] leading-tight text-right" style={{ color: '#0DA1A4' }}>
+                      {lang === 'es'
+                        ? <>iOS: compartir → &ldquo;Imprimir&rdquo; → &ldquo;PDF&rdquo;</>
+                        : <>iOS: share → &ldquo;Print&rdquo; → &ldquo;PDF&rdquo;</>}
                     </p>
                   )}
                 </div>

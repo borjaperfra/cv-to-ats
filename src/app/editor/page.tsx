@@ -490,6 +490,9 @@ export default function EditorPage() {
 
   // ─ PDF Export ─
   const handlePdfExport = async () => {
+    const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+    // Open window synchronously before any await — preserves user gesture on iOS
+    const preOpenedWin = isMobileDevice ? window.open('', '_blank') : null
     setExportingPdf(true)
     const cvToExport = translatedCv[cvLang] ?? cv
     const nombre = cvToExport.personalInfo.nombre || 'cv'
@@ -575,13 +578,17 @@ export default function EditorPage() {
       }
 
       const filename = `${nombre.replace(/\s+/g, '_').toLowerCase()}_cv.pdf`
-      const blob = pdf.output('blob')
-      const pdfFile = new File([blob], filename, { type: 'application/pdf' })
-      if (typeof navigator.canShare === 'function' && navigator.canShare({ files: [pdfFile] })) {
-        await navigator.share({ files: [pdfFile], title: 'Mi CV' })
+      if (preOpenedWin) {
+        const blob = pdf.output('blob')
+        const url = URL.createObjectURL(blob)
+        preOpenedWin.location.href = url
+        setTimeout(() => URL.revokeObjectURL(url), 60000)
       } else {
         pdf.save(filename)
       }
+    } catch (err) {
+      if (preOpenedWin) preOpenedWin.close()
+      throw err
     } finally {
       setExportingPdf(false)
     }
