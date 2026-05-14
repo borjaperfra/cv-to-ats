@@ -38,9 +38,11 @@ function offerUrl(offer: ManfredOffer) {
 }
 
 function formatSalary(from: number, to: number, currency: string) {
-  if (!from) return null
-  const k = (n: number) => n >= 1000 ? `${Math.round(n / 1000)}k` : String(n)
-  if (to && to !== from) return `${k(from)}–${k(to)} ${currency}`
+  if (!from && !to) return null
+  const k = (n: number) => `${Math.round(n / 1000)}k`
+  if (from && to && from !== to) return `${k(from)}–${k(to)} ${currency}`
+  if (from && !to) return `desde ${k(from)} ${currency}`
+  if (!from && to) return `hasta ${k(to)} ${currency}`
   return `${k(from)} ${currency}`
 }
 

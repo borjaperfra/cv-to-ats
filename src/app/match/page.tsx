@@ -22,9 +22,12 @@ interface ManfredOffer {
 }
 
 function formatSalary(from: number, to: number, currency: string): string | null {
-  if (!from) return null
+  if (!from && !to) return null
   const k = (n: number) => `${Math.round(n / 1000)}k`
-  return to && to !== from ? `${k(from)}–${k(to)} ${currency}` : `${k(from)} ${currency}`
+  if (from && to && from !== to) return `${k(from)}–${k(to)} ${currency}`
+  if (from && !to) return `desde ${k(from)} ${currency}`
+  if (!from && to) return `hasta ${k(to)} ${currency}`
+  return `${k(from)} ${currency}`
 }
 
 function formatLocation(remotePercentage: number, locations: string[]): string {
@@ -513,38 +516,39 @@ export default function MatchPage() {
                     const location = formatLocation(offer.remotePercentage, offer.locations ?? [])
                     const matchPct = preScoreOffer(offer, skillsDetectadas)
                     const hasMatch = skillsDetectadas.length > 0
-                    const isGoodMatch = matchPct >= 25
+                    const matchStyle = matchPct >= 30
+                      ? { bg: '#e6f7f7', color: '#0DA1A4', border: '#b2e8e8' }
+                      : matchPct >= 15
+                      ? { bg: '#fffbeb', color: '#d97706', border: '#fde68a' }
+                      : { bg: '#f0ede8', color: '#6b7280', border: '#e5e7eb' }
                     return (
                       <button
                         key={offer.id}
                         onClick={() => handleSelectOffer(offer)}
-                        className="w-full text-left rounded-xl border p-3 transition-all duration-150 hover:border-teal/40 hover:shadow-sm group"
-                        style={{ backgroundColor: '#fafafa', borderColor: isGoodMatch ? '#b2e8e8' : '#f0ede8' }}
+                        className="w-full text-left rounded-xl border p-3 transition-all duration-150 hover:shadow-sm"
+                        style={{ backgroundColor: '#fafafa', borderColor: matchPct >= 30 ? '#b2e8e8' : '#ede9e3' }}
                       >
-                        <div className="flex items-start gap-3">
+                        <div className="flex items-center gap-3">
                           <OfferLogo name={offer.company.name} logoUrl={offer.company.logoUrl} />
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <p className="font-sans font-[700] text-sm text-navy leading-snug">{offer.position}</p>
                               {hasMatch && (
                                 <span
-                                  className="flex-shrink-0 font-sans font-[700] text-[10px] px-1.5 py-0.5 rounded-full"
-                                  style={isGoodMatch
-                                    ? { backgroundColor: '#e6f7f7', color: '#0DA1A4' }
-                                    : { backgroundColor: '#f3f4f6', color: '#9ca3af' }
-                                  }
+                                  className="font-sans font-[700] text-[10px] px-1.5 py-0.5 rounded-full"
+                                  style={{ backgroundColor: matchStyle.bg, color: matchStyle.color, border: `1px solid ${matchStyle.border}` }}
                                 >
                                   {matchPct}% match
                                 </span>
                               )}
                             </div>
                             <p className="font-sans text-xs text-gray-400 mt-0.5">{offer.company.name}</p>
-                            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                              {salary && (
-                                <span className="font-sans text-xs font-[700] text-teal">{salary}</span>
-                              )}
-                              <span className="font-sans text-xs text-gray-400">{location}</span>
-                            </div>
+                          </div>
+                          <div className="flex-shrink-0 text-right">
+                            {salary && (
+                              <p className="font-sans text-xs font-[700] text-teal">{salary}</p>
+                            )}
+                            <p className="font-sans text-xs text-gray-400 mt-0.5">{location}</p>
                           </div>
                         </div>
                       </button>
