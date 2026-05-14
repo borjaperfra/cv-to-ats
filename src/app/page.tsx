@@ -393,9 +393,15 @@ export default function UploadPage() {
       formData.append('cv', file)
       formData.append('lang', getLang())
       const response = await fetch('/api/analyze', { method: 'POST', body: formData })
-      const data = await response.json()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let data: any
+      try {
+        data = await response.json()
+      } catch {
+        throw new Error('El servidor no pudo procesar la respuesta. Por favor, inténtalo de nuevo.')
+      }
       if (!response.ok) {
-          throw new Error(data.error || 'Error al analizar el CV.')
+        throw new Error(data.error || 'Error al analizar el CV.')
       }
       if (data._cvText) {
         sessionStorage.setItem('atsCvText', data._cvText)

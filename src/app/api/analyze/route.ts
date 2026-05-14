@@ -87,7 +87,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No se ha proporcionado ningún archivo.' }, { status: 400 })
     }
 
-    if (!ALLOWED_TYPES.includes(file.type)) {
+    const fileExt = (file.name.split('.').pop() ?? '').toLowerCase()
+    const ALLOWED_EXTS = new Set(['pdf', 'docx', 'doc', 'txt', 'md'])
+    if (!ALLOWED_TYPES.includes(file.type) && !ALLOWED_EXTS.has(fileExt)) {
       return NextResponse.json(
         { error: 'Solo se admiten archivos PDF, DOCX, TXT o MD.' },
         { status: 415 }

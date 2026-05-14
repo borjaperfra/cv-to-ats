@@ -43,8 +43,16 @@ export async function extractFromPDF(buffer: Buffer, maxPages?: number): Promise
 
 export async function extractFromDOCX(buffer: Buffer): Promise<string> {
   const mammoth = await import('mammoth')
-  const result = await mammoth.extractRawText({ buffer })
-  return result.value
+  try {
+    const result = await mammoth.extractRawText({ buffer })
+    if (!result.value.trim()) {
+      throw new Error('El archivo .doc no pudo leerse. Conviértelo a .docx o PDF e inténtalo de nuevo.')
+    }
+    return result.value
+  } catch (err) {
+    if (err instanceof Error && err.message.includes('doc')) throw err
+    throw new Error('El archivo .doc no pudo leerse. Conviértelo a .docx o PDF e inténtalo de nuevo.')
+  }
 }
 
 export async function extractCVText(buffer: Buffer, filename: string, maxPages?: number): Promise<string> {
