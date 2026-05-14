@@ -54,7 +54,7 @@ function looksLikeCV(text: string): boolean {
     // Universal
     'linkedin', 'github', 'portfolio',
   ]
-  return [...new Set(keywords)].filter(kw => sample.includes(kw)).length >= 2
+  return Array.from(new Set(keywords)).filter(kw => sample.includes(kw)).length >= 2
 }
 
 
