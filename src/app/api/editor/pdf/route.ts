@@ -30,7 +30,6 @@ async function getLaunchOptions(tmpDir: string) {
   return {
     executablePath,
     args: [...chromium.args, `--user-data-dir=${tmpDir}`],
-    headless: chromium.headless,
   }
 }
 
