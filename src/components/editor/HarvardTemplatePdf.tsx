@@ -8,8 +8,8 @@ const s = StyleSheet.create({
   page: {
     fontFamily: 'Helvetica',
     fontSize: 10,
-    lineHeight: 1.45,
-    paddingTop: pt(20),
+    lineHeight: 1.35,
+    paddingTop: pt(16),
     paddingBottom: pt(23),
     paddingLeft: pt(20),
     paddingRight: pt(20),
@@ -18,8 +18,8 @@ const s = StyleSheet.create({
   },
 
   // ── Header ──────────────────────────────────────────────
-  headerCenter: { alignItems: 'center', marginBottom: pt(4) },
-  nameRow: { flexDirection: 'row', justifyContent: 'center', marginBottom: 8 },
+  headerCenter: { alignItems: 'center', marginBottom: pt(2) },
+  nameRow: { flexDirection: 'row', justifyContent: 'center', marginBottom: 16 },
   firstName: { fontSize: 22, fontFamily: 'Helvetica', letterSpacing: -0.3 },
   lastName:  { fontSize: 22, fontFamily: 'Helvetica-Bold', letterSpacing: -0.3 },
   namePlaceholder: { fontSize: 22, fontFamily: 'Helvetica-Bold', color: '#cccccc' },
@@ -27,27 +27,27 @@ const s = StyleSheet.create({
   contact: { fontSize: 8.5, color: '#666666' },
 
   // ── Section header ───────────────────────────────────────
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', marginTop: pt(12), marginBottom: pt(6) },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', marginTop: pt(9), marginBottom: pt(4) },
   sectionTitle:  { fontFamily: 'Helvetica-Bold', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, color: '#111111', marginRight: 8 },
   sectionLine:   { flex: 1, borderBottomWidth: 0.5, borderBottomColor: '#aaaaaa' },
 
   // ── Skills ───────────────────────────────────────────────
-  skillsContainer: { fontSize: 9.5, lineHeight: 1.7 },
+  skillsContainer: { fontSize: 9.5, lineHeight: 1.5 },
   skillRow:   { flexDirection: 'row', marginBottom: 1 },
   skillLabel: { fontFamily: 'Helvetica-Bold', width: pt(38), flexShrink: 0 },
   skillValue: { flex: 1 },
 
   // ── Experience / Education ───────────────────────────────
-  entry:      { marginBottom: pt(10) },
-  entrySmall: { marginBottom: pt(8) },
+  entry:      { marginBottom: pt(5) },
+  entrySmall: { marginBottom: pt(4) },
   rowSpaced:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
   company:    { fontFamily: 'Helvetica-Bold', fontSize: 10 },
   period:     { fontSize: 9, color: '#555555', flexShrink: 0, marginLeft: pt(8) },
-  roleItalic: { fontSize: 9, color: '#555555', fontFamily: 'Helvetica-Oblique', marginTop: 1, marginBottom: 3 },
-  degreeItalic: { fontSize: 9, color: '#555555', fontFamily: 'Helvetica-Oblique', marginTop: 1, marginBottom: 2 },
+  roleItalic: { fontSize: 9, color: '#555555', fontFamily: 'Helvetica-Oblique', marginTop: 1, marginBottom: 1 },
+  degreeItalic: { fontSize: 9, color: '#555555', fontFamily: 'Helvetica-Oblique', marginTop: 1, marginBottom: 1 },
 
   // ── Bullets ──────────────────────────────────────────────
-  bulletRow:  { flexDirection: 'row', marginTop: 2 },
+  bulletRow:  { flexDirection: 'row', marginTop: 1 },
   bulletDot:  { fontSize: 10, marginRight: 6, flexShrink: 0 },
   bulletText: { flex: 1, fontSize: 10 },
 
@@ -56,7 +56,7 @@ const s = StyleSheet.create({
   projDesc: { fontSize: 10, marginTop: 2 },
 
   // ── Languages spoken ─────────────────────────────────────
-  langText: { fontSize: 9.5, lineHeight: 1.6 },
+  langText: { fontSize: 9.5, lineHeight: 1.4 },
 })
 
 function SectionHeader({ title }: { title: string }) {

@@ -31,9 +31,14 @@ You are a CV data extractor. Your ONLY task is to extract what is explicitly wri
 CRITICAL ANTI-HALLUCINATION RULES — NO EXCEPTIONS:
 - ONLY extract content that appears explicitly in the CV text. Never invent, infer, or complete missing information.
 - If a field is not present in the CV text, use "" for strings or [] for arrays. Never guess or fabricate.
-- Copy names, dates, companies, job titles, and bullets VERBATIM from the source text. Do not paraphrase or improve them.
+- Copy names, dates, companies, job titles, and bullets VERBATIM from the source text. Do not paraphrase, improve, or expand them.
 - Do NOT add skills, experience, education, or any other data that is not literally written in the CV.
 - If you are not certain a field appears in the text, leave it empty.
+
+CONCISENESS — the output is rendered in a one-page PDF:
+- "experiencia[].bullets": copy VERBATIM from the CV, maximum 4 bullets per role. If the original has more than 4, keep only the 4 most impactful. Never split one bullet into two. Never expand a short phrase into a full sentence.
+- "resumen": copy verbatim if present, otherwise "". Never generate a summary that is not in the CV.
+- Never produce more text than what is in the source CV.
 
 Return exactly this structure:
 {
@@ -108,8 +113,9 @@ Rewrite and enhance the CV content to apply those recommendations while respecti
 STRICT RULES:
 - DO NOT invent new experience, education, certifications or dates.
 - DO NOT change personal info (nombre, email, telefono, linkedin, ubicacion, website).
-- DO improve experience "bullets" to be more quantified, action-verb-led and keyword-rich.
-- DO add missing skills from the recommendations to the appropriate "habilidades" category (only real technical skills, not soft skills). Use the same categorization rules: languages=programming languages, frameworks=libraries/runtimes, databases=data stores, tools=DevOps/cloud/build tools, practices=methodologies.
+- DO improve experience "bullets" to be more action-verb-led and specific, but only based on context that already exists in the CV — never fabricate metrics, company names, or technologies not present in the original.
+- DO NOT add more bullets than exist in the original entry. Rewrite existing bullets, do not create new ones.
+- DO add missing skills from the recommendations ONLY if they are already mentioned somewhere in the CV text. Never add a skill that has no basis in the original CV.
 - DO keep the original language of the CV.
 - NEVER concatenate adjacent string fields. Always preserve spaces and separators between empresa, cargo, fechaInicio and fechaFin.
 - Return ONLY valid JSON with the exact same structure as the input — no markdown, no extra text.

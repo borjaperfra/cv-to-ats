@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
 
     const safeFilename = (filename as string).replace(/[^a-z0-9_\-]/gi, '_').toLowerCase()
 
-    return new NextResponse(buffer, {
+    return new NextResponse(new Uint8Array(buffer), {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="${safeFilename}_cv.pdf"`,
