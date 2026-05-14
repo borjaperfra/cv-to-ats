@@ -63,6 +63,9 @@ function sanitizeError(error: unknown): string {
     if (msg.includes('JSON') || msg.includes('parse')) {
       return 'Error al procesar la respuesta. Por favor, inténtalo de nuevo.'
     }
+    if (msg.includes('timed out') || msg.includes('timeout') || msg.includes('tardó demasiado')) {
+      return 'El análisis está tardando más de lo esperado. Por favor, inténtalo de nuevo en unos instantes.'
+    }
     return msg
   }
   return 'El análisis ha fallado. Por favor, inténtalo de nuevo.'

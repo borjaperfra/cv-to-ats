@@ -36,7 +36,7 @@ export async function nanComplete(prompt: string): Promise<string> {
     return data.choices[0].message.content
   } catch (err) {
     if (err instanceof Error && err.name === 'AbortError') {
-      throw new Error('NaN API request timed out after 80s')
+      throw new Error('AI request timed out after 80s')
     }
     throw err
   } finally {
