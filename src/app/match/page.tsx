@@ -106,6 +106,9 @@ const LABELS = {
     batchCta: 'Compara todas a la vez →',
     noStorage: 'Tu CV no se almacena',
     fastAnalysis: 'Análisis en segundos',
+    checkingSkills: 'Revisando tu encaje con las ofertas de Manfred...',
+    locationWarningTitle: 'Residencia en España requerida',
+    locationWarningBody: (country: string) => `Hemos detectado que tu CV está vinculado a ${country}. Todas las ofertas de Manfred son en España y requieren residencia legal para formalizar contrato. Lamentablemente no podremos tener en cuenta tu candidatura.`,
     errNoJd: 'Pega el texto, una URL o sube la oferta de trabajo para continuar.',
     errShortJd: 'El texto de la oferta parece demasiado corto. Pega el contenido completo.',
     errNoCv: 'Sube tu CV para continuar.',
@@ -139,6 +142,9 @@ const LABELS = {
     batchCta: 'Compare them all at once →',
     noStorage: 'Your CV is not stored',
     fastAnalysis: 'Analysis in seconds',
+    checkingSkills: 'Checking your fit with Manfred offers...',
+    locationWarningTitle: 'Spanish residency required',
+    locationWarningBody: (country: string) => `We detected your CV is linked to ${country}. All Manfred offers are based in Spain and require legal residency to sign a contract. Unfortunately we won't be able to consider your application.`,
     errNoJd: 'Paste the text, a URL or upload the job offer to continue.',
     errShortJd: 'The job description seems too short. Paste the full content.',
     errNoCv: 'Upload your CV to continue.',
@@ -181,6 +187,8 @@ export default function MatchPage() {
   const [cvFile, setCvFile] = useState<File | null>(null)
   const [hasCachedResult, setHasCachedResult] = useState(false)
   const [isDraggingCv, setIsDraggingCv] = useState(false)
+  const [loadingSkills, setLoadingSkills] = useState(false)
+  const [locationWarning, setLocationWarning] = useState<string | null>(null)
 
   // JD state
   const [jdText, setJdText] = useState('')
@@ -235,6 +243,32 @@ export default function MatchPage() {
     window.addEventListener('langchange', handler)
     return () => window.removeEventListener('langchange', handler)
   }, [])
+
+  useEffect(() => {
+    if (!cvFile) {
+      setSkillsDetectadas([])
+      setLocationWarning(null)
+      return
+    }
+    setLoadingSkills(true)
+    setSkillsDetectadas([])
+    setLocationWarning(null)
+    const fd = new FormData()
+    fd.append('cvFile', cvFile)
+    fetch('/api/cv-preview', { method: 'POST', body: fd })
+      .then(r => r.ok ? r.json() : { skills: [], country: null })
+      .then(({ skills, country }: { skills: string[]; country: string | null }) => {
+        if (Array.isArray(skills) && skills.length > 0) {
+          setSkillsDetectadas(skills)
+          sessionStorage.setItem('matchSkills', JSON.stringify(skills))
+        }
+        if (country && !/(spain|españa)/i.test(country)) {
+          setLocationWarning(country)
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoadingSkills(false))
+  }, [cvFile])
 
   useEffect(() => {
     fetch('/api/manfred-offers')
@@ -390,7 +424,7 @@ export default function MatchPage() {
                 </div>
               </div>
               <button
-                onClick={() => { setHasCachedCv(false); setSkillsDetectadas([]); sessionStorage.removeItem('matchSkills') }}
+                onClick={() => { setHasCachedCv(false); setSkillsDetectadas([]); setLocationWarning(null); sessionStorage.removeItem('matchSkills') }}
                 className="font-sans text-xs text-gray-400 hover:text-gray-600 underline underline-offset-2"
               >
                 {L.change}
@@ -443,6 +477,21 @@ export default function MatchPage() {
             </div>
           )}
         </div>
+
+        {/* Location warning */}
+        {locationWarning && (
+          <div className="flex items-start gap-3 p-4 rounded-xl" style={{ backgroundColor: '#fff7ed', border: '1px solid #fed7aa' }}>
+            <div className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center mt-0.5" style={{ backgroundColor: '#ffedd5' }}>
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#c2410c' }}>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <p className="font-sans font-[700] text-sm mb-0.5" style={{ color: '#c2410c' }}>{L.locationWarningTitle}</p>
+              <p className="font-sans text-sm leading-relaxed" style={{ color: '#9a3412' }}>{L.locationWarningBody(locationWarning)}</p>
+            </div>
+          </div>
+        )}
 
         {/* JD section */}
         <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
@@ -571,13 +620,15 @@ export default function MatchPage() {
               <p className="font-sans font-[700] text-xs uppercase tracking-widest text-gray-400 mb-4">
                 {hasSkills ? 'Ofertas activas en Manfred · ordenadas por afinidad' : 'Ofertas activas en Manfred'}
               </p>
-              {loadingOffers ? (
+              {loadingOffers || loadingSkills ? (
                 <div className="flex items-center gap-2 py-4">
                   <svg className="animate-spin h-4 w-4 text-teal flex-shrink-0" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                   </svg>
-                  <p className="font-sans text-sm text-gray-400">Cargando ofertas...</p>
+                  <p className="font-sans text-sm text-gray-400">
+                    {loadingSkills ? L.checkingSkills : 'Cargando ofertas...'}
+                  </p>
                 </div>
               ) : (
                 <>

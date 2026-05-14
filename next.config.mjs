@@ -9,6 +9,7 @@ const nextConfig = {
       '/api/analyze': ['./node_modules/pdf-parse/**'],
       '/api/match': ['./node_modules/pdf-parse/**'],
       '/api/anonymize': ['./node_modules/pdf-parse/**'],
+      '/api/cv-preview': ['./node_modules/pdf-parse/**'],
     },
   },
 
