@@ -2,9 +2,10 @@ import type { ATSAnalysisResult, CategoryAnalysis, Suggestion } from '@/types/an
 import { withGeminiRetry } from '@/lib/api-retry'
 import { nanComplete } from '@/lib/nan-client'
 
-// ─── Pass 1: scoring ──────────────────────────────────────────────────────────
+// Weights must match the category order below (keywords, format, experience, education, contact, length)
+const CATEGORY_WEIGHTS = [0.30, 0.25, 0.20, 0.10, 0.10, 0.05]
 
-function buildScoringPrompt(cvText: string, lang: 'es' | 'en'): string {
+function buildAnalysisPrompt(cvText: string, lang: 'es' | 'en'): string {
   const langInstruction = lang === 'en'
     ? 'Respond in English. Write ALL text values in English.'
     : 'Respond in Spanish (Castilian). Write ALL text values in Spanish.'
@@ -19,7 +20,9 @@ Exception: JSON keys and enum values must always stay as specified (e.g. "alta"/
 
 Analyze the following CV and return ONLY valid JSON — no markdown, no text outside the JSON object.
 
-Required fields:
+─── SCORING ───────────────────────────────────────────────────────────────────
+
+Required top-level fields:
 
 - "nombre": only the person's first name extracted from the CV (no surnames).
 
@@ -27,46 +30,7 @@ Required fields:
 
 - "saludoTerminos": array of 2-5 exact substrings from the "saludo" field that represent the most important technical terms or concrete problems to highlight in bold (they must appear literally in "saludo"). Do not include the person's name.
 
-- "headline": short technical phrase (max 15 words) about the ATS state of the CV. in the specified language.
-
-  Do NOT include an "overallScore" field — it is calculated automatically from category scores.
-
-  Per-category scoring criteria — apply each rule mechanically, count exactly, do not estimate:
-
-  Keywords & skills: count each unique, explicitly named technology, programming language, framework, library, database, cloud platform, DevOps/MLOps tool, named methodology (e.g. Scrum, Kanban), or professional certification. Each item counts once regardless of how often it appears. Do NOT count generic soft skills ("communication", "leadership"), job titles, industry names, or vague phrases ("web technologies", "cloud experience").
-  - 85–100: 15+ distinct items | 70–84: 10–14 | 55–69: 6–9 | 35–54: 3–5 | <35: 0–2
-
-  Format & parseability: start at 90. Apply deductions only for confirmed, unambiguous issues. When in doubt, do NOT deduct.
-  - Two or more text columns running side by side (not a simple two-cell table): −35
-  - Main content inside merged-cell tables (not simple bordered boxes): −25
-  - CV text exists only as embedded images (no selectable text at all): −60
-  - Non-standard decorative characters used as the sole bullet style (★, ⬛, custom glyphs — not "•" or "-"): −10
-  If none of the above apply, score exactly 90. Do not invent penalties.
-
-  Work experience structure: for each role, check four binary elements: company name present? Job title present? Start date present? End date or "present" present? Description (at least one line) present? Count total omissions across all roles.
-  - 85–100: 0 omissions | 70–84: 1–2 omissions | 50–69: 3–5 omissions | <50: 6+ omissions
-
-  Education & certifications: institution name + degree/qualification + year = complete entry.
-  - 85–100: ≥1 complete entry + certifications if listed | 65–84: complete entry, no certs | 50–64: partial entries | <50: sparse or absent
-
-  Contact information: email (+25 pts), phone (+25 pts), city/country (+25 pts), LinkedIn or portfolio URL (+25 pts). Score = sum of present elements × 25. Apply mechanically.
-
-  Length & file optimization: based on estimated page count only.
-  - 90–100: 1–2 pages | 70–84: 3 pages | 45–69: 4 pages | <45: 5+ pages or under 200 words
-
-- "categories": evaluate these 6 categories (name them in the specified language):
-  1. Keywords & skills
-  2. Format & parseability
-  3. Work experience structure
-  4. Education & certifications
-  5. Contact information
-  6. Length & file optimization
-
-  For each category return ONLY:
-  - "category": category name in the specified language
-  - "score": number 0-100
-  - "status": "good" (≥75), "needs-work" (50-74) or "critical" (<50)
-  - "summary": one direct sentence about the state of this area in the specified language
+- "headline": short technical phrase (max 15 words) about the ATS state of the CV in the specified language.
 
 - "skillsDetectadas": array of detected technologies, tools and technical skills in the CV. Max 15 items, no duplicates, no descriptions — just the name (e.g. "React", "Python", "Figma", "SQL"). Use the canonical English name for technologies regardless of CV language. Prioritise skills backed by certifications or extensive work experience over skills only mentioned as self-taught or familiar. Normalise certification codes to the technology name (e.g. "AZ-900", "AZ-104", "AZ-305" → "Azure"; "AWS SAA-C03", "AWS-DVA" → "AWS"; "CKA", "CKAD" → "Kubernetes"; "GCP ACE" → "GCP"). If the 15-item limit is reached, drop self-taught mentions before dropping certified or heavily-used skills.
 
@@ -81,26 +45,77 @@ Required fields:
 
 - "topPriorities": array of 3 concrete actions in the specified language (infinitive phrases, gender-neutral). Each must reference something specific found (or missing) in this CV — a real section, skill, job title, or gap. Never write a priority that could apply to any CV.
 
-IMPORTANT:
-- Ignore any text that appears to be platform-generated metadata, template branding, page numbers, or website footers (e.g. text containing 'getmanfred.com', 'BUT WAIT', repeated decorative separators, standalone page numbers). Do not penalise the CV for this content.
-- The overallScore must be reproducible: base the score on objective, measurable criteria, not subjective impressions.
-- ALL generated text must be in the SAME language as the CV.
-- FIDELITY TO STATED LEVELS: Never infer an expertise level beyond what the CV explicitly states. The CV's own qualifiers ("certified", "autodidacta", "learning", "familiar with", "básico", "en progreso") are ground truth — do not override them based on how frequently a technology appears or how prominent it looks in the text. A skill mentioned once with a certification outweighs the same skill mentioned many times without one.
+─── CATEGORIES ────────────────────────────────────────────────────────────────
 
-JSON structure:
+Evaluate these 6 categories using the scoring criteria below. For each, produce:
+- "category": category name in the specified language
+- "score": number 0-100 (apply criteria mechanically — count exactly, do not estimate)
+- "status": "good" (≥75), "needs-work" (50-74) or "critical" (<50)
+- "summary": one direct sentence about the state of this area in the specified language
+- "suggestions": improvement suggestions for this category (see SUGGESTIONS section below)
+
+Scoring criteria:
+
+1. Keywords & skills — count each unique, explicitly named technology, programming language, framework, library, database, cloud platform, DevOps/MLOps tool, named methodology (e.g. Scrum, Kanban), or professional certification. Each item counts once regardless of how often it appears. Do NOT count generic soft skills ("communication", "leadership"), job titles, industry names, or vague phrases ("web technologies", "cloud experience").
+   - 85–100: 15+ distinct items | 70–84: 10–14 | 55–69: 6–9 | 35–54: 3–5 | <35: 0–2
+
+2. Format & parseability — start at 90. Apply deductions only for confirmed, unambiguous issues. When in doubt, do NOT deduct.
+   - Two or more text columns running side by side (not a simple two-cell table): −35
+   - Main content inside merged-cell tables (not simple bordered boxes): −25
+   - CV text exists only as embedded images (no selectable text at all): −60
+   - Non-standard decorative characters used as the sole bullet style (★, ⬛, custom glyphs — not "•" or "-"): −10
+   If none of the above apply, score exactly 90. Do not invent penalties.
+
+3. Work experience structure — for each role, check four binary elements: company name present? Job title present? Start date present? End date or "present" present? Description (at least one line) present? Count total omissions across all roles.
+   - 85–100: 0 omissions | 70–84: 1–2 omissions | 50–69: 3–5 omissions | <50: 6+ omissions
+
+4. Education & certifications — institution name + degree/qualification + year = complete entry.
+   - 85–100: ≥1 complete entry + certifications if listed | 65–84: complete entry, no certs | 50–64: partial entries | <50: sparse or absent
+
+5. Contact information — email (+25 pts), phone (+25 pts), city/country (+25 pts), LinkedIn or portfolio URL (+25 pts). Score = sum of present elements × 25. Apply mechanically.
+
+6. Length & file optimization — based on estimated page count only.
+   - 90–100: 1–2 pages | 70–84: 3 pages | 45–69: 4 pages | <45: 5+ pages or under 200 words
+
+─── SUGGESTIONS ───────────────────────────────────────────────────────────────
+
+For each category, write improvement suggestions. Number of suggestions based on the score you assign:
+- score < 50 → 4 suggestions
+- score 50–74 → 3 suggestions
+- score ≥ 75 → 2 suggestions
+
+Each suggestion must follow this structure:
+- "titulo": short actionable title in the specified language
+- "pasos": exactly 3 steps, each with:
+  - "texto": concrete step in 1-2 sentences, naming specific CV content
+  - "terminos": array of 1-3 key substrings from "texto" that appear literally in "texto"
+- "prioridad": "alta" if category score < 60, "media" if 60–74, "baja" if ≥ 75
+- "sugerencia": short (max 50 words) copy-paste ready text example showing improved content, or null if no concrete rewrite is possible
+
+MANDATORY SUGGESTION RULES:
+1. Every step MUST reference something specific from THIS CV: an exact sentence, job title, company name, date range, section name, or skill. If you cannot point to a specific element, do not write that step.
+2. Quote or directly name specific CV content in every step.
+3. Each suggestion must tackle a DIFFERENT problem within its category.
+4. STRICTLY FORBIDDEN steps: "Add more keywords", "Quantify your achievements with numbers", "Make sure your contact information is complete", "Use a clean ATS-friendly format", "Tailor your CV to the job description", or any step that does not name a specific CV element.
+5. NEVER suggest changing, correcting, or updating date ranges, employment years, or graduation years. All dates are facts from the candidate's history.
+6. NEVER describe experience as "outdated" based on the year it occurred.
+7. NEVER suggest reordering work experience chronologically if the most recent position already appears first.
+8. Do NOT duplicate advice across suggestions — each suggestion in the entire response must address a unique problem.
+9. NEVER suggest removing the candidate's name without specifying exactly where it should appear instead.
+
+─── IMPORTANT ─────────────────────────────────────────────────────────────────
+
+- Ignore platform-generated metadata, template branding, page numbers, or website footers (e.g. 'getmanfred.com', 'BUT WAIT', repeated decorative separators, standalone page numbers). Do not penalise the CV for this content.
+- ALL generated text must be in the SAME language as specified.
+- FIDELITY TO STATED LEVELS: Never infer an expertise level beyond what the CV explicitly states. The CV's own qualifiers ("certified", "autodidacta", "learning", "familiar with", "básico", "en progreso") are ground truth — do not override them.
+
+─── JSON STRUCTURE ────────────────────────────────────────────────────────────
+
 {
   "nombre": "<string>",
   "saludo": "<string>",
   "saludoTerminos": ["<substring>", ...],
   "headline": "<string>",
-  "categories": [
-    {
-      "category": "<string>",
-      "score": <number>,
-      "status": "<good|needs-work|critical>",
-      "summary": "<string>"
-    }
-  ],
   "skillsDetectadas": ["<string>", ...],
   "metricas": {
     "palabras": <number>,
@@ -109,86 +124,24 @@ JSON structure:
   },
   "alertasCriticas": ["<string>", ...],
   "gapsCarrera": ["<string>", ...],
-  "topPriorities": ["<string>", "<string>", "<string>"]
-}
-
-CV TEXT:
----
-${cvText}
----`
-}
-
-// ─── Pass 2: suggestions ──────────────────────────────────────────────────────
-
-function suggestionCount(score: number): number {
-  if (score < 50) return 4
-  if (score < 65) return 3
-  return 2
-}
-
-function buildSuggestionsPrompt(
-  cvText: string,
-  categories: Array<{ category: string; score: number }>,
-  lang: 'es' | 'en',
-): string {
-  const langInstruction = lang === 'en'
-    ? 'Respond in English. Write ALL text values in English.'
-    : 'Respond in Spanish (Castilian). Write ALL text values in Spanish.'
-  const today = new Date().toISOString().slice(0, 10)
-
-  const categoryLines = categories
-    .map(c => {
-      const n = suggestionCount(c.score)
-      const label = c.score < 50 ? 'CRITICAL' : c.score < 75 ? 'NEEDS-WORK' : 'GOOD'
-      return `- "${c.category}" (score: ${c.score}, ${label}) → write exactly ${n} suggestions`
-    })
-    .join('\n')
-
-  return `You are an ATS consultant. A CV has already been scored. Your ONLY task now is to write hyper-specific, deeply personalised improvement suggestions for each category.
-
-TODAY'S DATE: ${today}. Use this as the definitive reference for all temporal reasoning.
-
-LANGUAGE: ${langInstruction} JSON keys and enum values must stay as specified.
-
-CATEGORIES AND REQUIRED SUGGESTION COUNTS:
-${categoryLines}
-
-MANDATORY RULES — NO EXCEPTIONS:
-1. Every single step MUST reference something specific from THIS CV. Before writing a step, identify the exact sentence, job title, company name, date range, section name, or skill from the CV that it addresses. If you cannot point to a specific element in the CV, do not write that step.
-2. Quote or directly name specific CV content in every step: the actual position title, company name, skill, section header, or date range involved.
-3. Each suggestion must tackle a DIFFERENT problem within its category. Do not write variations of the same advice.
-4. STRICTLY FORBIDDEN — reject any step matching these patterns:
-   - "Add more keywords to your CV"
-   - "Quantify your achievements with numbers"
-   - "Make sure your contact information is complete"
-   - "Use a clean, ATS-friendly format"
-   - "Tailor your CV to the job description"
-   - Any step that does not name a specific element from this CV
-5. "prioridad": use "alta" for categories with score < 60, "media" for 60–74, "baja" for 75+.
-6. Each suggestion needs exactly 3 "pasos".
-7. NEVER suggest changing, correcting, or updating date ranges, employment years, graduation years, or any other temporal information. All dates in the CV are facts from the candidate's history — do not flag them as wrong, future, outdated, or in need of updating.
-8. NEVER describe experience as "outdated" based on the year it occurred. Do not suggest that any listed experience is in the future or needs its dates corrected.
-9. Each suggestion MUST include a "sugerencia" field: a short (max 50 words), copy-paste ready text example showing what the improved content looks like. Write only the specific text to add or replace — not an instruction. For example: if adding skills, write the updated skills line ("Figma, Design Thinking, Wireframing"); if rewriting a bullet, write the improved bullet. If no concrete text rewrite is possible, set to null.
-10. NEVER suggest reordering work experience chronologically if the most recent position already appears first. A role listed as "Actualidad", "actual", "Present", or paired with the most recent year is already correctly positioned at the top. Assume reverse chronological order is correct unless you find a concrete violation (an older date appearing before a newer date).
-11. Do NOT duplicate advice across suggestions. Each suggestion in this entire response must address a unique, distinct problem — if you have already addressed moving content, removing a section, or adding a skill in another suggestion, do not repeat it in a different one.
-12. NEVER suggest removing or eliminating the candidate's name from the CV without specifying exactly where it should appear instead. If the name appears in an unexpected place, suggest moving it to the header — never suggest deleting it without providing an alternative placement in the same step.
-
-Return ONLY valid JSON — no markdown, no text outside the JSON object:
-{
+  "topPriorities": ["<string>", "<string>", "<string>"],
   "categories": [
     {
-      "category": "<exact category name from the list above>",
+      "category": "<string>",
+      "score": <number>,
+      "status": "<good|needs-work|critical>",
+      "summary": "<string>",
       "suggestions": [
         {
-          "titulo": "<short actionable title in the specified language>",
+          "titulo": "<string>",
           "pasos": [
             {
-              "texto": "<concrete step in 1-2 sentences, naming specific CV content>",
-              "terminos": ["<1-3 key substrings from texto that appear literally in texto>"]
+              "texto": "<string>",
+              "terminos": ["<string>", ...]
             }
           ],
           "prioridad": "<alta|media|baja>",
-          "sugerencia": "<copy-paste text example or null>"
+          "sugerencia": "<string|null>"
         }
       ]
     }
@@ -201,26 +154,23 @@ ${cvText}
 ---`
 }
 
-// ─── Types for intermediate results ──────────────────────────────────────────
-
-// Weights must match the category order in buildScoringPrompt (keywords, format, experience, education, contact, length)
-const CATEGORY_WEIGHTS = [0.30, 0.25, 0.20, 0.10, 0.10, 0.05]
-
-interface ScoringResult {
+interface AnalysisResult {
   nombre:           string
   saludo:           string
   saludoTerminos:   string[]
   headline:         string
-  categories:       Array<{ category: string; score: number; status: string; summary: string }>
+  categories:       Array<{
+    category:    string
+    score:       number
+    status:      string
+    summary:     string
+    suggestions: Suggestion[]
+  }>
   skillsDetectadas: string[]
   metricas:         { palabras: number; paginasEstimadas: number; densidadKeywords: number }
   alertasCriticas:  string[]
   gapsCarrera:      string[]
   topPriorities:    string[]
-}
-
-interface SuggestionsResult {
-  categories: Array<{ category: string; suggestions: Suggestion[] }>
 }
 
 function parseJson<T>(text: string): T {
@@ -232,69 +182,46 @@ function parseJson<T>(text: string): T {
   return JSON.parse(cleaned) as T
 }
 
-// ─── Public function ──────────────────────────────────────────────────────────
-
 export async function analyzeWithGemini(cvText: string, lang: 'es' | 'en' = 'es'): Promise<ATSAnalysisResult> {
-  // Pass 1: scoring
-  const scoringText = await withGeminiRetry(() => nanComplete(buildScoringPrompt(cvText, lang)))
-  let scoring: ScoringResult
+  const responseText = await withGeminiRetry(() => nanComplete(buildAnalysisPrompt(cvText, lang)))
+
+  let result: AnalysisResult
   try {
-    scoring = parseJson<ScoringResult>(scoringText)
+    result = parseJson<AnalysisResult>(responseText)
   } catch {
     throw new Error('Error al procesar la respuesta. Por favor, inténtalo de nuevo.')
   }
 
-  if (!Array.isArray(scoring.categories) || scoring.categories.length === 0) {
+  if (!Array.isArray(result.categories) || result.categories.length === 0) {
     throw new Error('La respuesta no tenía los campos necesarios. Por favor, inténtalo de nuevo.')
   }
 
   const overallScore = Math.round(
-    scoring.categories
+    result.categories
       .slice(0, 6)
       .reduce((sum, cat, i) => sum + (cat.score ?? 0) * (CATEGORY_WEIGHTS[i] ?? 0), 0)
   )
 
-  // Pass 2: suggestions (runs after scoring so it has the category scores)
-  const suggestionsText = await withGeminiRetry(() =>
-    nanComplete(buildSuggestionsPrompt(cvText, scoring.categories, lang))
-  )
-  let suggestionsResult: SuggestionsResult
-  try {
-    suggestionsResult = parseJson<SuggestionsResult>(suggestionsText)
-  } catch {
-    suggestionsResult = { categories: [] }
-  }
-
-  // Merge: inject suggestions into each category by name match
-  const suggestionMap = new Map<string, Suggestion[]>()
-  for (const c of suggestionsResult.categories ?? []) {
-    if (c.category && Array.isArray(c.suggestions)) {
-      suggestionMap.set(c.category.toLowerCase().trim(), c.suggestions)
-    }
-  }
-
-  const categories: CategoryAnalysis[] = scoring.categories.map((c, i) => ({
+  const categories: CategoryAnalysis[] = result.categories.map(c => ({
     category:    c.category,
     score:       c.score,
     status:      c.status as CategoryAnalysis['status'],
     summary:     c.summary,
-    suggestions: suggestionMap.get(c.category.toLowerCase().trim())
-      ?? suggestionsResult.categories?.[i]?.suggestions
-      ?? [],
+    suggestions: Array.isArray(c.suggestions) ? c.suggestions : [],
   }))
 
   return {
     overallScore,
-    nombre:           scoring.nombre ?? '',
-    saludo:           scoring.saludo ?? scoring.headline ?? '',
-    saludoTerminos:   scoring.saludoTerminos ?? [],
-    headline:         scoring.headline ?? '',
-    skillsDetectadas: scoring.skillsDetectadas ?? [],
-    metricas:         scoring.metricas,
-    alertasCriticas:  scoring.alertasCriticas ?? [],
-    gapsCarrera:      scoring.gapsCarrera ?? [],
+    nombre:           result.nombre ?? '',
+    saludo:           result.saludo ?? result.headline ?? '',
+    saludoTerminos:   result.saludoTerminos ?? [],
+    headline:         result.headline ?? '',
+    skillsDetectadas: result.skillsDetectadas ?? [],
+    metricas:         result.metricas,
+    alertasCriticas:  result.alertasCriticas ?? [],
+    gapsCarrera:      result.gapsCarrera ?? [],
     categories,
-    topPriorities:    scoring.topPriorities ?? [],
+    topPriorities:    result.topPriorities ?? [],
     analyzedAt:       new Date().toISOString(),
   }
 }

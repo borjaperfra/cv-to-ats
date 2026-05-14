@@ -1,6 +1,6 @@
-const MAX_RETRIES = 2
+const MAX_RETRIES = 1
 const BASE_DELAY_MS = 1_000
-const CALL_TIMEOUT_MS = 90_000
+const CALL_TIMEOUT_MS = 82_000
 
 function isRetryable(error: unknown): boolean {
   if (!(error instanceof Error)) return false
