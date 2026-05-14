@@ -574,7 +574,14 @@ export default function EditorPage() {
         )
       }
 
-      pdf.save(`${nombre.replace(/\s+/g, '_').toLowerCase()}_cv.pdf`)
+      const filename = `${nombre.replace(/\s+/g, '_').toLowerCase()}_cv.pdf`
+      const blob = pdf.output('blob')
+      const pdfFile = new File([blob], filename, { type: 'application/pdf' })
+      if (typeof navigator.canShare === 'function' && navigator.canShare({ files: [pdfFile] })) {
+        await navigator.share({ files: [pdfFile], title: 'Mi CV' })
+      } else {
+        pdf.save(filename)
+      }
     } finally {
       setExportingPdf(false)
     }
