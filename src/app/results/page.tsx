@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import confetti from 'canvas-confetti'
 import type { ATSAnalysisResult, Suggestion } from '@/types/analysis'
 import Header from '@/components/Header'
 import { saveToHistory } from '@/lib/history'
@@ -28,11 +29,28 @@ export default function ResultsPage() {
       const parsed = JSON.parse(raw) as ATSAnalysisResult
       setResult(parsed)
       saveToHistory(parsed)
-      if (parsed.milestone) setShowMilestone(true)
+      const isMilestone = parsed.milestone || process.env.NODE_ENV === 'development'
+      if (isMilestone) setShowMilestone(true)
     } catch {
       router.replace('/')
     }
   }, [router])
+
+  useEffect(() => {
+    if (!showMilestone) return
+    const base = {
+      particleCount: 120, spread: 80, startVelocity: 50,
+      colors: ['#0DA1A4', '#01FFC6', '#092c64', '#ffffff', '#f59e0b'],
+    }
+    const t = setTimeout(() => {
+      confetti({ ...base, origin: { x: 0.2, y: 0.6 } })
+      confetti({ ...base, origin: { x: 0.8, y: 0.6 } })
+      setTimeout(() => {
+        confetti({ ...base, particleCount: 60, origin: { x: 0.5, y: 0.4 } })
+      }, 400)
+    }, 300)
+    return () => clearTimeout(t)
+  }, [showMilestone])
 
   const handleCopyEmail = () => {
     navigator.clipboard.writeText('borja.perez@getmanfred.com')
