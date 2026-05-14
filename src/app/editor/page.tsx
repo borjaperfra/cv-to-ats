@@ -474,7 +474,7 @@ export default function EditorPage() {
       const contentHeightPx = (pageHeightMm - marginMm * 2) * pxPerMm
 
       // Find a nearly-white row near targetY to use as natural page break
-      function findBreakY(nearY: number): number {
+      const findBreakY = (nearY: number): number => {
         const ctx = canvas.getContext('2d')
         if (!ctx) return nearY
         const searchPx = Math.round(40 * pxPerMm) // search up to 40mm above the target
