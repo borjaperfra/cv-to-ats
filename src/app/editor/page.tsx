@@ -443,6 +443,7 @@ export default function EditorPage() {
     }
 
     setExportingPdf(true)
+    setLoadError('')
     const cvToExport = translatedCv[cvLang] ?? cv
     const nombre = cvToExport.personalInfo.nombre || 'cv'
     try {
@@ -468,6 +469,9 @@ export default function EditorPage() {
       a.click()
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Error al generar el PDF.'
+      setLoadError(msg)
     } finally {
       setExportingPdf(false)
     }
