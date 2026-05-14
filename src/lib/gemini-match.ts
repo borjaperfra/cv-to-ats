@@ -9,6 +9,7 @@ function buildMatchPrompt(cvText: string, jdText: string, lang: 'es' | 'en'): st
   return `You are an expert ATS and recruitment consultant. Your tone is direct, human and free of unnecessary jargon.
 
 LANGUAGE: ${langInstruction}
+GENDER-NEUTRAL LANGUAGE (mandatory for Spanish output): Never use masculine generic forms. Use plural forms ("profesionales", "personas candidatas"), gender-neutral nouns ("el perfil", "quien aspira al puesto", "la persona"), or English role terms when the Spanish forces a gender ("developer", "engineer", "manager", "designer"). Forbidden: "el candidato", "el desarrollador", "el programador", "el analista" as generic — use "el perfil candidato", "developers", "profesionales de desarrollo", or the English term instead.
 
 Analyze the fit between the CV and the job description below. Return ONLY valid JSON — no markdown, no text outside the JSON object.
 
@@ -45,7 +46,10 @@ Required fields:
   - "descripcion": 2-3 sentences in the specified language. First: which specific gap from this job offer it addresses (name the exact missing skill or requirement). Then: what concretely to do and why it raises the match.
   - "terminos": array of 1-3 exact substrings from "descripcion" that should be highlighted in bold (key skills or actions). Must appear literally in "descripcion".
   - "impacto": "alto" if this closes a knockout or critical requirement, "medio" if it fills an important gap, "bajo" if it adds a nice-to-have.
-  - "recursos": array of 1-3 specific, named resources — exact course titles, certification names, platforms, or tools (e.g. "AWS Certified Solutions Architect – Associate", "Kubernetes for Developers (CKAD)", "The Odin Project"). Empty array if no obvious specific resource applies.
+  - "recursos": array of 1-3 specific resources. Each is an object with:
+    - "nombre": exact name of the course, certification, or platform (e.g. "AWS Certified Solutions Architect – Associate", "CKAD: Certified Kubernetes Application Developer", "The Odin Project")
+    - "url": official URL for this resource. Use the stable official landing page (e.g. "https://aws.amazon.com/certification/certified-solutions-architect-associate/"). If the exact page URL is uncertain, use the platform root (e.g. "https://coursera.org", "https://udemy.com"). Set to empty string "" only if no reliable URL exists at all.
+    Empty array [] if no obvious specific resource applies.
 
 RULES for sugerencias:
 - Each suggestion must address a DIFFERENT gap. Do not write two suggestions about the same missing skill.
@@ -71,13 +75,13 @@ JSON structure:
       "descripcion": "<string>",
       "terminos": ["<substring>", ...],
       "impacto": "<alto|medio|bajo>",
-      "recursos": ["<string>", ...]
+      "recursos": [{ "nombre": "<string>", "url": "<string>" }]
     }
   ]
 }
 
 IMPORTANT:
-- All text values must be in the specified language. The "prioridad" values must always be "alta", "media" or "baja".
+- All text values must be in the specified language. The "impacto" values must always be "alto", "medio" or "bajo".
 - NEVER open with flattery, praise, or motivational phrases. Do not say things like "great profile", "impressive background", "you have a lot to offer", or any equivalent. Go straight to the assessment.
 - If the match is low or medium, say so directly and clearly from the first sentence. Do not soften bad news with positivity first.
 

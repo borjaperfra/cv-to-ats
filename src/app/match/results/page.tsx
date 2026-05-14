@@ -133,12 +133,25 @@ function MatchSuggestionCard({ s, tipoLabels, impactoLabels, recursosLabel }: {
                 {recursosLabel}
               </p>
               <div className="flex flex-wrap gap-1.5">
-                {s.recursos.map((r, i) => (
-                  <span key={i} className="font-sans text-xs px-2.5 py-1 rounded-full"
-                    style={{ backgroundColor: '#f8fafc', color: '#475569', border: '1px solid #e2e8f0' }}>
-                    {r}
-                  </span>
-                ))}
+                {s.recursos.map((r, i) => {
+                  const nombre = typeof r === 'string' ? r : r.nombre
+                  const url = typeof r === 'string' ? undefined : r.url
+                  const hasUrl = url && url.trim().length > 0
+                  const inner = (
+                    <span className="flex items-center gap-1 font-sans text-xs px-2.5 py-1 rounded-full"
+                      style={{ backgroundColor: '#f8fafc', color: hasUrl ? '#0DA1A4' : '#475569', border: `1px solid ${hasUrl ? '#b2e8e8' : '#e2e8f0'}` }}>
+                      {nombre}
+                      {hasUrl && (
+                        <svg className="w-2.5 h-2.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      )}
+                    </span>
+                  )
+                  return hasUrl
+                    ? <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity">{inner}</a>
+                    : <span key={i}>{inner}</span>
+                })}
               </div>
             </div>
           )}
