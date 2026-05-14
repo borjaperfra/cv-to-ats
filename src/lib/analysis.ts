@@ -41,7 +41,7 @@ Required top-level fields:
 
 - "alertasCriticas": array of strings in the specified language describing severe issues that can cause ATS parsing failures. Only include real problems detected in the text (e.g. photo detected, multiple columns, complex tables, decorative special characters, URLs with spaces). Empty array [] if no critical alerts.
 
-- "gapsCarrera": array of strings in the specified language describing detected employment gaps of 6 months or more between consecutive work experiences. Each string must name the specific gap (e.g. "8 meses sin actividad laboral entre Empresa X (mar 2021) y Empresa Y (nov 2021)"). Return empty array [] if no significant gaps found. This is informational only — do NOT alter category scores because of gaps.
+- "gapsCarrera": array of strings in the specified language describing detected employment gaps of 6 months or more. A gap exists ONLY when there is a period with NO employment at all. CRITICAL: overlapping date ranges between two or more roles are NOT a gap — they represent simultaneous employment (e.g. a freelance/autonomous role running in parallel with a full-time job). Before flagging any gap, verify that no other role's date range covers that period. Each string must name the specific gap (e.g. "8 meses sin actividad laboral entre Empresa X (mar 2021) y Empresa Y (nov 2021)"). Return empty array [] if no significant gaps found. This is informational only — do NOT alter category scores because of gaps.
 
 - "topPriorities": array of 3 concrete actions in the specified language (infinitive phrases, gender-neutral). Each must reference something specific found (or missing) in this CV — a real section, skill, job title, or gap. Never write a priority that could apply to any CV.
 
@@ -66,7 +66,7 @@ Scoring criteria:
    - Non-standard decorative characters used as the sole bullet style (★, ⬛, custom glyphs — not "•" or "-"): −10
    If none of the above apply, score exactly 90. Do not invent penalties.
 
-3. Work experience structure — for each role, check four binary elements: company name present? Job title present? Start date present? End date or "present" present? Description (at least one line) present? Count total omissions across all roles.
+3. Work experience structure — for each role, check four binary elements: company name present? Job title present? Start date present? End date or "present" present? Description (at least one line) present? Count total omissions across all roles. NOTE: overlapping date ranges across roles are valid and expected (e.g. a freelance or autonomous role running in parallel with a full-time position) — do not treat them as omissions or errors.
    - 85–100: 0 omissions | 70–84: 1–2 omissions | 50–69: 3–5 omissions | <50: 6+ omissions
 
 4. Education & certifications — institution name + degree/qualification + year = complete entry.
