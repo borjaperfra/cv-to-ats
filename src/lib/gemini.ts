@@ -23,7 +23,7 @@ Required fields:
 
 - "nombre": only the person's first name extracted from the CV (no surnames).
 
-- "saludo": 2-4 sentence paragraph in the specified language. The first sentence is a casual, direct greeting using the person's name, followed by a quick score assessment. The following sentences highlight the CV's strengths and then the main issues lowering the ATS score. Use gender-neutral language. Be specific and mention concrete elements from the CV.
+- "saludo": 2-4 sentence paragraph in the specified language. The first sentence is a casual, direct greeting using the person's name, followed by a quick score assessment. The following sentences highlight the CV's strengths and then the main issues lowering the ATS score. Use gender-neutral language. Be specific and mention concrete elements from the CV. When mentioning skills or technologies, reflect the CV's stated proficiency level exactly — never upgrade or downgrade it. If the CV qualifies a skill as "autodidacta", "aprendizaje propio", "familiar", "básico" or equivalent, preserve that qualifier. Official certifications always indicate verified, demonstrable expertise and must be reflected as such.
 
 - "saludoTerminos": array of 2-5 exact substrings from the "saludo" field that represent the most important technical terms or concrete problems to highlight in bold (they must appear literally in "saludo"). Do not include the person's name.
 
@@ -71,7 +71,7 @@ Required fields:
   - "status": "good" (≥75), "needs-work" (50-74) or "critical" (<50)
   - "summary": one direct sentence about the state of this area in the specified language
 
-- "skillsDetectadas": array of detected technologies, tools and technical skills in the CV. Max 15 items, no duplicates, no descriptions — just the name (e.g. "React", "Python", "Figma", "SQL"). Use the canonical English name for technologies regardless of CV language.
+- "skillsDetectadas": array of detected technologies, tools and technical skills in the CV. Max 15 items, no duplicates, no descriptions — just the name (e.g. "React", "Python", "Figma", "SQL"). Use the canonical English name for technologies regardless of CV language. Prioritise skills backed by certifications or extensive work experience over skills only mentioned as self-taught or familiar. Normalise certification codes to the technology name (e.g. "AZ-900", "AZ-104", "AZ-305" → "Azure"; "AWS SAA-C03", "AWS-DVA" → "AWS"; "CKA", "CKAD" → "Kubernetes"; "GCP ACE" → "GCP"). If the 15-item limit is reached, drop self-taught mentions before dropping certified or heavily-used skills.
 
 - "metricas": object with:
   - "palabras": approximate total word count of the CV
@@ -88,6 +88,7 @@ IMPORTANT:
 - Ignore any text that appears to be platform-generated metadata, template branding, page numbers, or website footers (e.g. text containing 'getmanfred.com', 'BUT WAIT', repeated decorative separators, standalone page numbers). Do not penalise the CV for this content.
 - The overallScore must be reproducible: base the score on objective, measurable criteria, not subjective impressions.
 - ALL generated text must be in the SAME language as the CV.
+- FIDELITY TO STATED LEVELS: Never infer an expertise level beyond what the CV explicitly states. The CV's own qualifiers ("certified", "autodidacta", "learning", "familiar with", "básico", "en progreso") are ground truth — do not override them based on how frequently a technology appears or how prominent it looks in the text. A skill mentioned once with a certification outweighs the same skill mentioned many times without one.
 
 JSON structure:
 {
