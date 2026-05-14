@@ -15,6 +15,7 @@ export async function nanComplete(prompt: string): Promise<string> {
     body: JSON.stringify({
       model: NAN_MODEL,
       temperature: 0,
+      seed: 42,
       messages: [{ role: 'user', content: prompt }],
       response_format: { type: 'json_object' },
     }),

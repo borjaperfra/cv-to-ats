@@ -1,0 +1,411 @@
+================================================================================
+  ATS KILLER — PLAN DE PRUEBAS MANUAL
+  Fecha: 19/04/2026
+  Cubre: PRs #1 a #8 (BUG-01 a BUG-10, UX-01 a UX-15, IDEA-01 a IDEA-06)
+================================================================================
+
+Antes de empezar
+----------------
+- Abre la app en producción (Railway)
+- Ten a mano un CV en PDF o DOCX para subir
+- Ten a mano el texto de al menos 2-3 ofertas de trabajo
+- Usa Chrome o Safari en escritorio + Chrome en móvil para los tests de responsive
+
+Marca cada prueba con [OK], [FALLO] o [N/A] según el resultado.
+
+
+================================================================================
+  BLOQUE 1 — PÁGINA PRINCIPAL / ANÁLISIS DE CV
+================================================================================
+
+[ ] 1.1 DEMO SIN CV
+    - Sin subir ningún archivo, haz clic en "Ver ejemplo de análisis →"
+    - Debe navegar a /results con el análisis de María (Product Designer, score ~72)
+    - Comprueba que se ven categorías, sugerencias y skills detectadas
+    - No debe haber llamada a la API (es instantáneo)
+
+[ ] 1.2 SUBIR CV REAL
+    - Sube un PDF o DOCX con un CV real
+    - Verifica que el análisis se completa sin errores
+    - Comprueba que los mensajes de carga rotan: deben aparecer tanto mensajes
+      divertidos ("Revisando el alfabeto...") como técnicos
+      ("Extrayendo entidades nombradas...", "Tokenizando el contenido del CV...")
+
+[ ] 1.3 ARCHIVO QUE NO ES UN CV
+    - Sube un PDF cualquiera que no sea un CV (una factura, un artículo, etc.)
+    - Debe devolver error: "El documento no parece un CV. Por favor, sube tu currículum"
+    - No debe llegar a llamar a Gemini
+
+[ ] 1.4 HISTORIAL
+    - Tras analizar un CV, vuelve a la homepage
+    - Debe aparecer la sección "Tus análisis recientes" con la entrada
+    - Haz clic en el card: debe navegar a /results con ese resultado
+    - Analiza un segundo CV diferente y comprueba que ambas entradas aparecen
+
+[ ] 1.5 COMPARAR DESDE HISTORIAL (IDEA-02)
+    - Con 2 o más entradas en el historial, localiza el icono de comparar (barras)
+      en el lado derecho de cada card
+    - Haz clic en el icono de un card → debe aparecer un banner teal:
+      "1 análisis seleccionado. Selecciona otro para comparar..."
+    - Haz clic en el icono de otro card diferente
+    - Debe navegar a /results/compare con los dos análisis ya cargados,
+      sin pedir subir ningún archivo nuevo
+    - Haz clic en el mismo card seleccionado → debe cancelar la selección
+
+[ ] 1.6 COPY LANDING
+    - Desplázate hasta la sección "Tres pasos, un informe completo"
+    - El segundo paso debe decir "Lo analizamos con IA" (no "La IA lo analiza")
+    - La descripción debe mencionar "Usamos Gemini para procesar el CV..."
+
+
+================================================================================
+  BLOQUE 2 — PÁGINA DE RESULTADOS
+================================================================================
+
+[ ] 2.1 PUNTUACIÓN CONSISTENTE
+    - Analiza el mismo CV dos veces seguidas
+    - Las puntuaciones deben ser iguales o muy cercanas (±2 puntos máximo)
+    - Esto verifica que temperature: 0 funciona correctamente
+
+[ ] 2.2 NOTA ITERATIVA
+    - En /results, bajo el título "Mejoras recomendadas", debe aparecer el texto:
+      "Cada análisis es independiente — al mejorar el CV pueden aparecer puntos nuevos.
+      La puntuación puede subir o bajar entre iteraciones."
+
+[ ] 2.3 COPIAR SUGERENCIA COMPLETA
+    - Pasa el ratón por encima de cualquier tarjeta de sugerencia
+    - Debe aparecer el botón "Copiar" en la esquina superior derecha de la tarjeta
+    - Haz clic → debe cambiar a "Copiado" con un tick verde
+    - Pega en un editor de texto y verifica que el contenido es correcto
+
+[ ] 2.4 COPIAR PASO INDIVIDUAL (IDEA-04)
+    - Pasa el ratón por encima de un bullet individual dentro de una tarjeta
+    - Debe aparecer un pequeño icono de copiar al final del bullet
+    - Haz clic → feedback visual de check verde
+    - Pega en un editor de texto: debe contener solo el texto de ese paso,
+      no la tarjeta completa
+
+[ ] 2.5 DESCUBRIBILIDAD DE HERRAMIENTAS (UX-12)
+    - Al final de /results debe aparecer una fila de 3 cards:
+      "Match con oferta", "Analizar LinkedIn", "Editor Harvard"
+    - Cada card debe ser clicable y navegar a la página correspondiente
+
+[ ] 2.6 COMPARAR VERSIONES
+    - Haz clic en "¿Has mejorado tu CV? Compara versiones"
+    - Debe navegar a /results/compare
+    - En esta página puedes subir un nuevo CV para comparar
+    - Al analizar, muestra el ranking antes/después por categoría
+
+[ ] 2.7 EXPORTAR PDF
+    - Haz clic en el botón de exportar PDF
+    - Debe abrirse el diálogo de impresión del navegador
+    - Verifica que el fondo oscuro del header cubre toda la primera página
+    - Verifica que el fondo cubre también la última página (no queda cortado)
+
+
+================================================================================
+  BLOQUE 3 — MATCH CON OFERTA
+================================================================================
+
+[ ] 3.1 MATCH INDIVIDUAL BÁSICO
+    - Navega a /match
+    - Si tienes un CV analizado reciente, debe aparecer el banner
+      "CV de [nombre] cargado · Del análisis anterior"
+    - Pega el texto de una oferta de trabajo y haz clic en "Comprobar match"
+    - Verifica que el resultado muestra score, keywords presentes/faltantes y sugerencias
+
+[ ] 3.2 TONO DEL RESUMEN
+    - En el resultado de match, lee el párrafo de resumen
+    - Si el score es bajo o medio (<75), el resumen NO debe empezar con elogios
+      ("gran perfil", "impresionante trayectoria", "tienes mucho que ofrecer")
+    - Debe ir directamente al análisis: ej. "Tu CV tiene un match del 45% con esta oferta..."
+
+[ ] 3.3 MENSAJES DE CARGA TÉCNICOS
+    - Durante el análisis de match, verifica que entre los mensajes de carga aparecen
+      algunos técnicos: "Vectorizando keywords...", "Calculando distancia semántica CV-JD...",
+      "Identificando requisitos excluyentes..."
+
+[ ] 3.4 URL CON LOGIN (CORRECCIÓN NUEVA)
+    - En el campo de oferta, pega una URL de LinkedIn Jobs o Indeed que requiera login
+      (ej: https://www.linkedin.com/jobs/view/cualquier-id)
+    - Debe devolver un error claro:
+      "La URL requiere iniciar sesión para ver el contenido. Prueba a pegar el texto directamente."
+    - NO debe intentar analizar contenido vacío ni dar un resultado sin sentido
+
+[ ] 3.5 URL PÚBLICA (sin login)
+    - Pega una URL de una oferta pública (ej: de una web de empresa directamente)
+    - Debe funcionar y extraer el texto de la oferta correctamente
+
+[ ] 3.6 BANNER ANÁLISIS ANTERIOR
+    - Si ya tienes un resultado de match guardado, al entrar a /match debe aparecer
+      el banner "Tienes un análisis de match anterior guardado" con botón "Ver análisis →"
+
+[ ] 3.7 PROBAR CON OTRA OFERTA (sin duplicar URL)
+    - Desde /match/results, usa el campo "Probar con otra oferta"
+    - Verifica que la URL del navegador NO cambia a /match/results?... (bug anterior)
+    - Debe quedarse en /match/results y actualizar el contenido
+
+[ ] 3.8 LINK AL MODO BATCH
+    - En /match, debe aparecer el texto "¿Tienes varias ofertas? Compara todas a la vez →"
+    - Haz clic → debe navegar a /match/batch
+
+[ ] 3.9 MATCH EN BATCH (IDEA-06)
+    - Navega a /match/batch
+    - Comprueba que aparecen 2 textareas por defecto
+    - Haz clic en "Añadir oferta" → debe aparecer una tercera (hasta máximo 8)
+    - Pega texto de 2-3 ofertas distintas (mín. 50 caracteres cada una)
+    - Opcionalmente añade etiquetas a cada oferta
+    - Haz clic en "Analizar X ofertas"
+    - Debe aparecer una barra de progreso: "Analizando oferta 1 de 3...", "2 de 3..."
+    - Al terminar: ranking ordenado por score, con keywords verdes (match) y rojas (gap)
+    - Haz clic en "Ver análisis completo →" de la oferta con mejor score
+    - Debe navegar a /match/results con ese resultado
+
+
+================================================================================
+  BLOQUE 4 — ANALIZAR LINKEDIN
+================================================================================
+
+[ ] 4.1 ANÁLISIS BÁSICO
+    - Navega a /linkedin
+    - Copia y pega el texto de un perfil de LinkedIn (expandiendo todos los "ver más")
+    - Verifica que el análisis devuelve score, categorías y recomendaciones
+
+[ ] 4.2 TONO DEL RESUMEN (igual que en match)
+    - Si el perfil tiene puntos débiles, el resumen NO debe abrirse con elogios
+    - Debe ser directo: estado del perfil desde la primera frase
+
+[ ] 4.3 DEDUPLICACIÓN
+    - Si el perfil tiene secciones repetidas (pasa al copiar sin expandir "ver más"),
+      el análisis no debe mencionar las mismas cosas dos veces
+
+[ ] 4.4 BANNER ANÁLISIS ANTERIOR
+    - Si ya tienes un análisis de LinkedIn guardado, al volver a /linkedin debe
+      aparecer el banner con botón "Ver análisis →"
+
+[ ] 4.5 NOTA URL
+    - En /linkedin debe aparecer una nota informativa indicando que el análisis
+      por URL no está soportado y explicando cómo copiar el texto manualmente
+
+
+================================================================================
+  BLOQUE 5 — EDITOR DE CV
+================================================================================
+
+[ ] 5.1 SCROLLS INDEPENDIENTES
+    - Navega a /editor en pantalla grande (>768px)
+    - Haz scroll en el panel izquierdo (formulario) → el panel derecho (preview) no debe moverse
+    - Haz scroll en el panel derecho → el izquierdo no debe moverse
+
+[ ] 5.2 IDIOMA DEL EDITOR
+    - Si tienes seleccionado inglés (EN) en el selector de idioma,
+      las etiquetas del editor deben estar en inglés:
+      "Full name", "Professional title", "Add experience", etc.
+    - Si cambias a ES, deben cambiar a español
+
+[ ] 5.3 IMPORTAR CV DEL ANÁLISIS
+    - Analiza un CV desde la homepage, luego navega a /editor
+    - Debe aparecer el banner "Hemos detectado el CV de [nombre]"
+    - Haz clic en "Cargar en el editor"
+    - Los campos deben rellenarse automáticamente con los datos del CV
+
+[ ] 5.4 BANNER DE MEJORAS APLICADAS
+    - Con un CV cargado y un análisis ATS previo, en /editor aparece el banner amarillo
+      de recomendaciones
+    - Haz clic en "Aplicar recomendaciones al CV"
+    - Al terminar debe aparecer el banner verde: "X mejoras aplicadas — revisa los cambios"
+
+[ ] 5.5 FOTO DE PERFIL (IDEA-03)
+    - En la sección "Información personal" del editor, debe aparecer el campo "Foto de perfil"
+    - Sube una imagen PNG o JPG cuadrada
+    - La previsualización circular debe aparecer en el formulario
+    - En la vista previa Harvard (panel derecho), la foto debe aparecer
+      circular en la esquina superior derecha del encabezado
+    - Haz clic en "Eliminar foto" → la foto debe desaparecer del formulario y de la preview
+
+[ ] 5.6 AUTOSAVE
+    - Escribe algo en cualquier campo del editor
+    - Espera ~1 segundo
+    - Debe aparecer el indicador verde "Guardado"
+    - Recarga la página → los datos deben seguir ahí
+
+[ ] 5.7 EXPORTAR DOCX
+    - Con datos rellenados, haz clic en "Descargar DOCX"
+    - Debe descargarse un archivo .docx con el contenido del CV
+
+[ ] 5.8 EXPORTAR PDF (TEXTO, NO IMAGEN)
+    - Haz clic en "Descargar PDF"
+    - Abre el PDF descargado y verifica que el texto es seleccionable
+      (no es una imagen escaneada)
+    - Esto confirma que el PDF tiene capa de texto y puede ser leído por ATS
+
+
+================================================================================
+  BLOQUE 6 — FEEDBACK WIDGET
+================================================================================
+
+[ ] 6.1 ABRIR Y CERRAR
+    - Haz clic en el botón "Feedback" (esquina inferior izquierda)
+    - El modal debe abrirse
+    - Pulsa Escape → debe cerrarse
+
+[ ] 6.2 ENVIAR CON CTRL+ENTER
+    - Abre el widget, escribe un mensaje
+    - Pulsa Ctrl+Enter (o Cmd+Enter en Mac) → debe enviarse sin hacer clic en el botón
+    - Debe aparecer el mensaje de confirmación verde
+
+[ ] 6.3 ENVÍO CORRECTO
+    - Rellena tipo, mensaje y opcionalmente nombre/email
+    - Haz clic en "Enviar feedback"
+    - Debe aparecer el mensaje de éxito
+    - Verifica en el panel de admin (/admin/feedback) que el mensaje ha llegado
+
+
+================================================================================
+  BLOQUE 7 — RESPONSIVE / MÓVIL
+================================================================================
+
+[ ] 7.1 MENÚ HAMBURGUESA
+    - En móvil (<768px), el menú principal debe mostrar el icono de hamburguesa
+    - Al hacer clic, debe desplegarse el menú con: Analizar CV, Match, LinkedIn, Editor
+    - Al hacer clic en cualquier ítem, debe navegar y cerrar el menú
+
+[ ] 7.2 HOMEPAGE EN MÓVIL
+    - La zona de subida de CV debe ser usable en móvil
+    - El botón "Ver ejemplo de análisis" debe ser visible
+
+[ ] 7.3 RESULTADOS EN MÓVIL
+    - /results debe ser legible y las tarjetas de sugerencias deben tener buen tamaño
+
+[ ] 7.4 EDITOR EN MÓVIL
+    - En móvil el editor muestra un toggle para alternar entre formulario y preview
+      (no dos columnas, sino una a la vez)
+
+
+================================================================================
+  BLOQUE 8 — ADMIN
+================================================================================
+
+[ ] 8.1 LOGIN
+    - Navega a /login
+    - Introduce usuario y contraseña incorrectos → debe mostrar error
+    - Introduce las credenciales correctas → debe redirigir a /admin/feedback
+
+[ ] 8.2 PESTAÑAS DE ADMIN
+    - En /admin/feedback deben aparecer 3 pestañas: Activos, Archivados, Issues
+    - "Activos" debe mostrar los feedbacks no procesados (deberían quedar pocos)
+    - "Archivados" debe mostrar los procesados
+    - "Issues" debe mostrar las 32 issues con sus estados (30 resueltas, 2 descartadas)
+
+[ ] 8.3 ESTADO ISSUES
+    - En la pestaña Issues, verifica que el contador de pendientes es 0
+    - IDEA-06 debe aparecer como "resuelto"
+    - IDEA-05, UX-11, IDEA-07 deben aparecer como "descartado"
+
+
+================================================================================
+  BLOQUE 9 — CALIDAD DEL ANALISIS (PR #9)
+================================================================================
+
+Estas pruebas verifican las mejoras de consistencia y precision del analisis ATS.
+Usa un CV real tuyo para las tres pruebas seguidas, sin cerrar el navegador entre ellas.
+
+[ ] 9.1 CONSISTENCIA DE PUNTUACION (varianza)
+    - Sube el mismo CV tres veces seguidas sin cerrar la pestaña
+    - Anota la puntuacion global de cada analisis
+    - Las tres puntuaciones deben estar dentro de un rango de ±3 puntos
+    - Si la diferencia es >5 puntos, hay varianza inaceptable — reportar
+    - Hace lo mismo con una categoria concreta (ej: "Keywords & skills"):
+      las tres puntuaciones de esa categoria deben estar dentro de ±5 puntos
+
+[ ] 9.2 SIN CONSEJOS DE FECHAS
+    - Analiza un CV que tenga experiencia de 2024 y/o 2025
+    - Revisa todas las sugerencias generadas
+    - NINGUNA sugerencia debe recomendar:
+      * "Actualiza las fechas de experiencia"
+      * "Corrige el año de [empresa]"
+      * "La fecha de [rol] parece estar en el futuro"
+      * Cualquier variante de cambiar o corregir fechas temporales
+    - Las fechas 2024-2026 deben tratarse como hechos validos del candidato
+
+[ ] 9.3 CV ADAPTADO NO EMPEORA
+    - Analiza el CV original y anota la puntuacion (ej: 68)
+    - Aplica al menos 2-3 de las sugerencias de alta prioridad al CV
+      (puedes usar el editor o editar directamente el archivo)
+    - Sube el CV mejorado y anota la nueva puntuacion
+    - La nueva puntuacion debe ser >= a la original, o a lo sumo 3 puntos menor
+    - Si el CV mejorado baja más de 5 puntos, es un fallo — reportar con detalle
+      (que sugerencias aplicaste, cuanto bajo, que categorias cambiaron)
+
+[ ] 9.4 FORMATO LIMPIO NO SE PENALIZA
+    - Crea un CV en el editor Harvard y descargalo como PDF o DOCX
+    - Subelo al analizador
+    - La categoria "Formato y parseo" (o "Format & parseability") debe puntuar
+      al menos 70/100 — el formato Harvard es limpio y single-column
+    - Si puntua menos de 60, hay un problema en los criterios de scoring — reportar
+
+
+================================================================================
+  RESUMEN DE CAMBIOS IMPLEMENTADOS (PRs #1 a #8)
+================================================================================
+
+PR #1 — BUG-01 a BUG-05
+  - Menú hamburguesa visible en iOS Safari
+  - Historial no duplica entradas al navegar
+  - Selector de idioma funciona correctamente
+  - Drag & drop en Comparar no abre PDF en nueva pestaña
+  - Error JSON en Match al caer el servicio: mensaje amigable
+
+PR #2 — BUG-06 a BUG-10
+  - Editor: texto concatenado sin espacios al auto-mejorar
+  - Match: URL no se duplica al probar otra oferta
+  - LinkedIn: deduplicación del texto pegado
+  - LinkedIn: feedback más específico con citas del perfil
+  - PDF: fondo cubre toda la última página al imprimir
+
+PR #3 — UX-01 a UX-05
+  - Puntuación determinista (temperature: 0 en Gemini)
+  - Nota explicativa sobre el proceso iterativo en resultados
+  - Banner "Ver análisis anterior" en Match y LinkedIn
+  - CV del análisis persiste al navegar a Match y Editor
+  - Detección de archivos que no son CVs
+
+PR #4 — UX-06 a UX-10
+  - Editor: paneles con scroll independiente
+  - Editor: etiquetas en el idioma del CV (ES/EN)
+  - Editor: banner verde con número de mejoras aplicadas
+  - Editor: campos se rellenan automáticamente desde el análisis previo
+  - Hover mejorado en botones y enlaces
+
+PR #5 — UX-12 a UX-15 (UX-11 descartado)
+  - Grid de herramientas en resultados (Match, LinkedIn, Editor)
+  - Feedback widget: Ctrl+Enter para enviar, Esc para cerrar
+  - Prompts: alertas de solapamiento de fechas incluyen sugerencia de resolución
+  - Pre-limpieza de artefactos de GetManfred antes de analizar
+
+PR #6 — IDEA-01 a IDEA-04 (IDEA-05 descartado)
+  - Botón "Ver ejemplo de análisis" en homepage (sin subir CV)
+  - Comparar dos análisis directamente desde el historial
+  - Foto de perfil en el editor Harvard (upload, preview, exporta en PDF/print)
+  - Icono de copiar por paso individual en cada sugerencia
+
+PR #7 — IDEA-06
+  - Nueva página /match/batch: hasta 8 ofertas en paralelo con ranking
+
+PR #8 — Feedback beta (sin número de issue)
+  - Prompts de Match y LinkedIn: prohibido abrir con elogios
+  - URL de oferta detrás de login: error claro al usuario
+  - Mensajes de carga: mezcla de divertidos y técnicos
+  - Landing: "Lo analizamos con IA" (en lugar de "La IA lo analiza")
+
+PR #9 — Calidad del análisis (feedback usuarios)
+  - Bug: prompt de sugerencias sin fecha — modelo generaba consejos de cambiar fechas
+  - Añadida regla explícita: prohibido sugerir cambios en fechas/años del CV
+  - Rubrics de scoring mejorados: criterios mecánicos por categoría (listas de comprobación)
+  - nan-client: añadido seed: 42 para maximizar determinismo entre llamadas
+  - Scoring de formato: penalizar SOLO obstáculos reales de parseo, no el formato limpio
+
+
+================================================================================
+  FIN DEL PLAN DE PRUEBAS
+================================================================================

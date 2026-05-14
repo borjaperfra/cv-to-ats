@@ -31,13 +31,31 @@ Required fields:
 
 - "overallScore": number 0-100. Calculate as the exact weighted average of the 6 category scores using these fixed weights: Keywords & skills 30%, Format & parseability 25%, Work experience structure 20%, Education & certifications 10%, Contact information 10%, Length & file optimization 5%. Round to the nearest integer.
 
-  Score calibration — use these anchors for balanced, objective scoring:
-  - 85–100: ATS-ready CV with minimal issues, strong keyword coverage and clean structure.
-  - 72–84: Good CV with a few fixable issues. Solid keyword density and format.
-  - 55–71: Some noticeable problems in 1–2 categories. Room for improvement but a functional CV. Most real-world CVs fall here.
-  - 35–54: Significant gaps in structure, keywords, or multiple categories.
-  - Below 35: Severe problems — likely unparseable or missing key content.
-  Aim for accuracy: do not deflate scores for minor issues, but do not ignore real problems either.
+  Score calibration — apply these objective, measurable anchors:
+  - 85–100: ATS-ready: 12+ distinct technical skills, clean single-column structure, all roles have company+title+dates+description, full contact info.
+  - 70–84: Good CV: 7–11 skills, readable format with minor issues, most roles complete, contact info mostly present.
+  - 50–69: Functional but improvable: <7 skills OR structural issues, some incomplete roles, some contact info missing.
+  - 35–49: Significant gaps in 2+ categories: very few keywords, missing sections, multiple incomplete roles.
+  - Below 35: Severe problems — nearly no keywords, unparseable format, or critical information missing.
+
+  Per-category scoring criteria (apply mechanically):
+
+  Keywords & skills: count unique technical skills, tools, technologies, and methodologies explicitly named.
+  - 85–100: 15+ distinct items | 70–84: 10–14 | 55–69: 6–9 | 35–54: 3–5 | <35: 0–2
+
+  Format & parseability: penalise ONLY for confirmed parsing obstacles (multi-column layout, merged-cell tables, embedded images, decorative special characters as bullets, text-as-image). A clean, well-structured CV with standard section headers scores 85–100. Do NOT deduct for professional formatting, clear typography, or organised layout.
+  - 85–100: clean single-column, standard headers | 65–84: minor issues | 45–64: some obstacles | <45: severe or unparseable
+
+  Work experience structure: for each role, check: company name present? Job title present? Dates (start/end) present? Description present?
+  - 85–100: all 4 elements in every role | 70–84: 1–2 minor omissions | 50–69: several roles missing 1–2 elements | <50: many incomplete roles
+
+  Education & certifications: institution name + degree/qualification + year = complete entry.
+  - 85–100: ≥1 complete entry + certifications if listed | 65–84: complete entry, no certs | 50–64: partial entries | <50: sparse or absent
+
+  Contact information: email (+25 pts), phone (+25 pts), city/country (+25 pts), LinkedIn or portfolio URL (+25 pts). Total = sum of present elements.
+
+  Length & file optimization: based on estimated page count.
+  - 90–100: 1–2 pages | 70–84: 3 pages | 45–69: 4 pages | <45: 5+ pages or under 200 words
 
 - "categories": evaluate these 6 categories (name them in the specified language):
   1. Keywords & skills
@@ -116,6 +134,7 @@ function buildSuggestionsPrompt(
   const langInstruction = lang === 'en'
     ? 'Respond in English. Write ALL text values in English.'
     : 'Respond in Spanish (Castilian). Write ALL text values in Spanish.'
+  const today = new Date().toISOString().slice(0, 10)
 
   const categoryLines = categories
     .map(c => {
@@ -126,6 +145,8 @@ function buildSuggestionsPrompt(
     .join('\n')
 
   return `You are an ATS consultant. A CV has already been scored. Your ONLY task now is to write hyper-specific, deeply personalised improvement suggestions for each category.
+
+TODAY'S DATE: ${today}. Use this as the definitive reference for all temporal reasoning.
 
 LANGUAGE: ${langInstruction} JSON keys and enum values must stay as specified.
 
@@ -145,6 +166,8 @@ MANDATORY RULES — NO EXCEPTIONS:
    - Any step that does not name a specific element from this CV
 5. "prioridad": use "alta" for categories with score < 60, "media" for 60–74, "baja" for 75+.
 6. Each suggestion needs exactly 3 "pasos".
+7. NEVER suggest changing, correcting, or updating date ranges, employment years, graduation years, or any other temporal information. All dates in the CV are facts from the candidate's history — do not flag them as wrong, future, outdated, or in need of updating.
+8. NEVER describe experience as "outdated" based on the year it occurred. Do not suggest that any listed experience is in the future or needs its dates corrected.
 
 Return ONLY valid JSON — no markdown, no text outside the JSON object:
 {
