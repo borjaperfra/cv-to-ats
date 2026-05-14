@@ -79,29 +79,21 @@ Scoring criteria:
 
 ─── SUGGESTIONS ───────────────────────────────────────────────────────────────
 
-For each category, write improvement suggestions. Number of suggestions based on the score you assign:
-- score < 50 → 4 suggestions
-- score 50–74 → 3 suggestions
-- score ≥ 75 → 2 suggestions
-
-Each suggestion must follow this structure:
+For each category, write exactly 2 improvement suggestions. Each must follow this structure:
 - "titulo": short actionable title in the specified language
-- "pasos": exactly 3 steps, each with:
-  - "texto": concrete step in 1-2 sentences, naming specific CV content
-  - "terminos": array of 1-3 key substrings from "texto" that appear literally in "texto"
+- "pasos": exactly 2 steps, each with:
+  - "texto": concrete step in 1-2 sentences naming specific CV content
+  - "terminos": array of 1-2 key substrings from "texto" that appear literally in "texto"
 - "prioridad": "alta" if category score < 60, "media" if 60–74, "baja" if ≥ 75
-- "sugerencia": short (max 50 words) copy-paste ready text example showing improved content, or null if no concrete rewrite is possible
+- "sugerencia": max 30-word copy-paste text example showing improved content, or null
 
-MANDATORY SUGGESTION RULES:
-1. Every step MUST reference something specific from THIS CV: an exact sentence, job title, company name, date range, section name, or skill. If you cannot point to a specific element, do not write that step.
-2. Quote or directly name specific CV content in every step.
-3. Each suggestion must tackle a DIFFERENT problem within its category.
-4. STRICTLY FORBIDDEN steps: "Add more keywords", "Quantify your achievements with numbers", "Make sure your contact information is complete", "Use a clean ATS-friendly format", "Tailor your CV to the job description", or any step that does not name a specific CV element.
-5. NEVER suggest changing, correcting, or updating date ranges, employment years, or graduation years. All dates are facts from the candidate's history.
-6. NEVER describe experience as "outdated" based on the year it occurred.
-7. NEVER suggest reordering work experience chronologically if the most recent position already appears first.
-8. Do NOT duplicate advice across suggestions — each suggestion in the entire response must address a unique problem.
-9. NEVER suggest removing the candidate's name without specifying exactly where it should appear instead.
+SUGGESTION RULES:
+1. Every step MUST name a specific element from THIS CV (job title, company, skill, section, date range). Generic steps are forbidden.
+2. Forbidden patterns: "Add more keywords", "Quantify achievements", "Ensure contact info is complete", "Use ATS-friendly format", "Tailor to job description".
+3. Each suggestion tackles a DIFFERENT problem. No duplicates across the entire response.
+4. NEVER suggest changing dates, employment years, or graduation years — all dates are historical facts.
+5. NEVER reorder work experience if the most recent position already appears first.
+6. NEVER suggest removing the candidate's name without providing an alternative placement.
 
 ─── IMPORTANT ─────────────────────────────────────────────────────────────────
 
@@ -134,12 +126,13 @@ MANDATORY SUGGESTION RULES:
       "suggestions": [
         {
           "titulo": "<string>",
-          "pasos": [
-            {
-              "texto": "<string>",
-              "terminos": ["<string>", ...]
-            }
-          ],
+          "pasos": [{"texto": "<string>", "terminos": ["<string>"]}, {"texto": "<string>", "terminos": ["<string>"]}],
+          "prioridad": "<alta|media|baja>",
+          "sugerencia": "<string|null>"
+        },
+        {
+          "titulo": "<string>",
+          "pasos": [{"texto": "<string>", "terminos": ["<string>"]}, {"texto": "<string>", "terminos": ["<string>"]}],
           "prioridad": "<alta|media|baja>",
           "sugerencia": "<string|null>"
         }
