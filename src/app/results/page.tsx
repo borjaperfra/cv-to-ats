@@ -9,6 +9,7 @@ import ScoreHeader from '@/components/results/ScoreHeader'
 import SuggestionCard from '@/components/results/SuggestionCard'
 import AlertaBanner from '@/components/results/AlertaBanner'
 import ExportButton from '@/components/results/ExportButton'
+import ManfredOffersSection from '@/components/results/ManfredOffersSection'
 import ScrollToTop from '@/components/ScrollToTop'
 
 const PRIORITY_ORDER: Record<string, number> = { alta: 0, media: 1, baja: 2 }
@@ -93,6 +94,32 @@ export default function ResultsPage() {
             </div>
           )}
 
+          {/* Career gaps — informational, not critical */}
+          {result.gapsCarrera && result.gapsCarrera.length > 0 && (
+            <div className="break-inside-avoid rounded-2xl p-5" style={{ backgroundColor: '#fffbeb', border: '1px solid #fde68a' }}>
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center mt-0.5" style={{ backgroundColor: '#fef3c7' }}>
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#d97706' }}>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="font-sans font-[700] text-xs uppercase tracking-widest mb-2" style={{ color: '#d97706' }}>
+                    Huecos en el historial laboral
+                  </p>
+                  <ul className="space-y-1">
+                    {result.gapsCarrera.map((gap, i) => (
+                      <li key={i} className="font-sans text-sm" style={{ color: '#92400e' }}>{gap}</li>
+                    ))}
+                  </ul>
+                  <p className="font-sans text-xs mt-2" style={{ color: '#b45309' }}>
+                    Algunos ATS filtran gaps de más de 6 meses. Considera añadir una breve nota explicativa en tu CV.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Section title */}
           <div className="pt-3 pb-1">
             <h2 className="font-sans font-[900] text-xl text-purple-dark">
@@ -139,6 +166,11 @@ export default function ResultsPage() {
               <ExportButton variant="outline" />
             </div>
           </div>
+
+          {/* Manfred offers — hidden on print */}
+          {result.skillsDetectadas && result.skillsDetectadas.length > 0 && (
+            <ManfredOffersSection skillsDetectadas={result.skillsDetectadas} />
+          )}
 
           {/* More tools discovery — hidden on print */}
           <div className="no-print grid grid-cols-1 sm:grid-cols-3 gap-3">

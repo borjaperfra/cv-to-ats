@@ -17,6 +17,7 @@ const LABELS = {
     scoreLabels: { good: 'Buen match', partial: 'Match parcial', low: 'Match bajo' },
     keywordsPresent: '✓ Keywords presentes',
     keywordsMissing: '✗ Keywords faltantes',
+    requisitosExcluyentes: '⚠ Requisitos imprescindibles que faltan',
     howToImprove: 'Cómo mejorar tu match',
     youDecide: 'Tú decides por dónde empezar.',
     tryNewOffer: 'Probar con otra oferta',
@@ -40,6 +41,7 @@ const LABELS = {
     scoreLabels: { good: 'Good match', partial: 'Partial match', low: 'Low match' },
     keywordsPresent: '✓ Keywords present',
     keywordsMissing: '✗ Missing keywords',
+    requisitosExcluyentes: '⚠ Knockout requirements missing',
     howToImprove: 'How to improve your match',
     youDecide: 'You decide where to start.',
     tryNewOffer: 'Try with another offer',
@@ -265,6 +267,32 @@ export default function MatchResultsPage() {
               </div>
             )}
           </div>
+
+          {/* Knockout requirements */}
+          {result.requisitosExcluyentes && result.requisitosExcluyentes.length > 0 && (
+            <div className="rounded-2xl p-5" style={{ backgroundColor: '#fff1f2', border: '1px solid #fecdd3' }}>
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center mt-0.5" style={{ backgroundColor: '#fee2e2' }}>
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#dc2626' }}>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="font-sans font-[700] text-xs uppercase tracking-widest mb-2.5" style={{ color: '#dc2626' }}>
+                    {L.requisitosExcluyentes}
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {result.requisitosExcluyentes.map(req => (
+                      <span key={req} className="font-sans text-xs font-[700] px-2.5 py-1 rounded-full"
+                        style={{ backgroundColor: '#fee2e2', color: '#991b1b', border: '1px solid #fca5a5' }}>
+                        {req}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Suggestions */}
           {sorted.length > 0 && (

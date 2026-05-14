@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import type { CVData, ExperienciaEntry, EducacionEntry, IdiomaEntry, ProyectoEntry, SkillCategories } from '@/types/cv'
 import type { ATSAnalysisResult, Suggestion } from '@/types/analysis'
@@ -9,6 +9,7 @@ import { DEMO_CV } from '@/types/cv'
 import { exportToMarkdown } from '@/lib/export-markdown'
 import { getLang, type Lang } from '@/components/LanguageSelector'
 import { type CvLang } from '@/lib/cv-labels'
+import { calcAtsScore } from '@/lib/ats-score-simple'
 
 const LABELS = {
   es: {
@@ -210,6 +211,12 @@ export default function EditorPage() {
   const [loadingRecs, setLoadingRecs] = useState(false)
   const [loadError, setLoadError] = useState('')
   const [changesApplied, setChangesApplied] = useState<number | null>(null)
+
+  // ─ Pre-download analysis modal ─
+  const [showPreDownload, setShowPreDownload] = useState(false)
+  const [preAnalyzing, setPreAnalyzing] = useState(false)
+  const [preAnalysisResult, setPreAnalysisResult] = useState<ATSAnalysisResult | null>(null)
+  const [preAnalysisError, setPreAnalysisError] = useState('')
 
   useEffect(() => {
     setLang(getLang())
@@ -429,6 +436,58 @@ export default function EditorPage() {
   }))
   const removeIdioma = (id: string) => setCv(prev => ({ ...prev, idiomas: prev.idiomas.filter(l => l.id !== id) }))
 
+  // ─ Pre-download analysis ─
+  function buildCvPlainText(data: CVData): string {
+    const p = data.personalInfo
+    const parts: string[] = []
+    if (p.nombre)    parts.push(p.nombre)
+    if (p.cargo)     parts.push(p.cargo)
+    const contact = [p.email, p.telefono, p.linkedin, p.ubicacion, p.website].filter(Boolean)
+    if (contact.length) parts.push(contact.join(' | '))
+    const allSkills = [
+      ...data.habilidades.languages, ...data.habilidades.frameworks,
+      ...data.habilidades.databases, ...data.habilidades.tools, ...data.habilidades.practices,
+    ]
+    if (allSkills.length) parts.push('Skills: ' + allSkills.join(', '))
+    for (const exp of data.experiencia) {
+      parts.push(`${exp.cargo} at ${exp.empresa} (${exp.fechaInicio} - ${exp.actual ? 'Present' : exp.fechaFin})`)
+      exp.bullets.filter(Boolean).forEach(b => parts.push('- ' + b))
+    }
+    for (const edu of data.educacion) {
+      parts.push(`${edu.titulo}${edu.campo ? ', ' + edu.campo : ''} — ${edu.institucion} (${edu.fechaInicio} - ${edu.fechaFin})`)
+    }
+    for (const proj of data.proyectos) {
+      parts.push(`Project: ${proj.nombre} — ${proj.descripcion}`)
+    }
+    for (const l of data.idiomas) {
+      parts.push(`${l.idioma}: ${l.nivel}`)
+    }
+    return parts.join('\n')
+  }
+
+  const handlePreDownloadAnalyze = async () => {
+    setPreAnalyzing(true)
+    setPreAnalysisError('')
+    setPreAnalysisResult(null)
+    try {
+      const cvToAnalyze = translatedCv[cvLang] ?? cv
+      const text = buildCvPlainText(cvToAnalyze)
+      const blob = new Blob([text], { type: 'text/plain' })
+      const file = new File([blob], 'cv.txt', { type: 'text/plain' })
+      const formData = new FormData()
+      formData.append('cv', file)
+      formData.append('lang', lang)
+      const res = await fetch('/api/analyze', { method: 'POST', body: formData })
+      const data = await res.json() as ATSAnalysisResult & { error?: string }
+      if (!res.ok) throw new Error(data.error || 'Error al analizar')
+      setPreAnalysisResult(data)
+    } catch (err) {
+      setPreAnalysisError(err instanceof Error ? err.message : 'Error inesperado')
+    } finally {
+      setPreAnalyzing(false)
+    }
+  }
+
   // ─ PDF Export ─
   const handlePdfExport = async () => {
     setExportingPdf(true)
@@ -521,6 +580,8 @@ export default function EditorPage() {
     }
   }
 
+  const liveAtsScore = useMemo(() => calcAtsScore(cv), [cv])
+
   return (
     <div className="flex flex-col h-screen overflow-hidden" style={{ backgroundColor: '#f0ede8' }}>
 
@@ -529,9 +590,25 @@ export default function EditorPage() {
       {/* Hero */}
       <section className="bg-navy text-white py-3 px-6 flex-shrink-0">
         <div className="max-w-container mx-auto flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
-          <h1 className="font-heading font-[900] text-xl leading-tight">
-            {LABELS[lang].heroTitle}
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="font-heading font-[900] text-xl leading-tight">
+              {LABELS[lang].heroTitle}
+            </h1>
+            {/* Live ATS score chip */}
+            <div
+              title="Estimación ATS en tiempo real (client-side)"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+              style={{
+                backgroundColor: liveAtsScore.level === 'high' ? 'rgba(13,161,164,0.2)' : liveAtsScore.level === 'mid' ? 'rgba(245,158,11,0.2)' : 'rgba(239,68,68,0.15)',
+                border: `1px solid ${liveAtsScore.level === 'high' ? 'rgba(13,161,164,0.4)' : liveAtsScore.level === 'mid' ? 'rgba(245,158,11,0.4)' : 'rgba(239,68,68,0.3)'}`,
+              }}
+            >
+              <span className="font-sans font-[900] text-xs leading-none" style={{ color: liveAtsScore.level === 'high' ? '#01FFC6' : liveAtsScore.level === 'mid' ? '#fbbf24' : '#f87171' }}>
+                {liveAtsScore.score}
+              </span>
+              <span className="font-sans text-[10px]" style={{ color: 'rgba(255,255,255,0.45)' }}>ATS</span>
+            </div>
+          </div>
           <p className="font-sans text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
             {LABELS[lang].heroAttr}{' '}
             <a href="https://newsletter.danielblanco.dev/p/17-como-llevar-tu-cv-al-siguiente"
@@ -811,7 +888,7 @@ export default function EditorPage() {
             {/* Export buttons */}
             <div className="flex gap-3 flex-wrap">
               <button
-                onClick={handlePdfExport}
+                onClick={() => { setShowPreDownload(true); setPreAnalysisResult(null); setPreAnalysisError(''); handlePreDownloadAnalyze() }}
                 disabled={exportingPdf}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-sans font-[900] text-xs uppercase tracking-wider border-2 transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed"
                 style={{ borderColor: '#092c64', color: '#092c64' }}
@@ -1150,6 +1227,127 @@ export default function EditorPage() {
       <div aria-hidden="true" style={{ position: 'fixed', left: '-9999px', top: 0, zIndex: -1, pointerEvents: 'none', width: '210mm' }}>
         <HarvardTemplate id="harvard-pdf-source" data={translatedCv[cvLang] ?? cv} lang={cvLang} />
       </div>
+
+      {/* Pre-download analysis modal */}
+      {showPreDownload && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+          onClick={() => { if (!exportingPdf) setShowPreDownload(false) }}>
+          <div
+            className="bg-white rounded-2xl w-full max-w-md p-6 space-y-4"
+            style={{ boxShadow: '0 8px 40px rgba(0,0,0,0.18)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <p className="font-sans font-[900] text-base" style={{ color: '#1a2744' }}>
+                {lang === 'es' ? 'Análisis antes de descargar' : 'Pre-download analysis'}
+              </p>
+              <button
+                onClick={() => setShowPreDownload(false)}
+                className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors"
+              >
+                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Loading */}
+            {preAnalyzing && (
+              <div className="flex flex-col items-center gap-3 py-6">
+                <svg className="animate-spin h-8 w-8 text-teal" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                </svg>
+                <p className="font-sans text-sm text-gray-400">
+                  {lang === 'es' ? 'Analizando tu CV...' : 'Analysing your CV...'}
+                </p>
+                <button
+                  onClick={() => { setShowPreDownload(false); handlePdfExport() }}
+                  className="font-sans text-xs text-gray-400 underline underline-offset-2 hover:text-gray-600"
+                >
+                  {lang === 'es' ? 'Descargar sin analizar' : 'Download without analysing'}
+                </button>
+              </div>
+            )}
+
+            {/* Error */}
+            {preAnalysisError && !preAnalyzing && (
+              <div className="rounded-xl p-4 bg-red-50 border border-red-100">
+                <p className="font-sans text-sm text-red-600">{preAnalysisError}</p>
+              </div>
+            )}
+
+            {/* Results */}
+            {preAnalysisResult && !preAnalyzing && (
+              <div className="space-y-4">
+                {/* Score */}
+                <div className="flex items-center gap-4 p-4 rounded-xl" style={{ backgroundColor: '#f8f9fa' }}>
+                  <div className="flex-shrink-0 text-center">
+                    <p className="font-sans font-[900] leading-none"
+                      style={{
+                        fontSize: '2.5rem',
+                        color: preAnalysisResult.overallScore >= 72 ? '#0DA1A4' : preAnalysisResult.overallScore >= 50 ? '#d97706' : '#dc2626'
+                      }}>
+                      {preAnalysisResult.overallScore}
+                    </p>
+                    <p className="font-sans text-xs text-gray-400">/ 100</p>
+                  </div>
+                  <div>
+                    <p className="font-sans font-[700] text-sm" style={{ color: '#1a2744' }}>
+                      {lang === 'es' ? 'Puntuación ATS' : 'ATS Score'}
+                    </p>
+                    <p className="font-sans text-xs text-gray-400 mt-0.5">{preAnalysisResult.headline}</p>
+                  </div>
+                </div>
+
+                {/* Top priorities */}
+                {preAnalysisResult.topPriorities && preAnalysisResult.topPriorities.length > 0 && (
+                  <div>
+                    <p className="font-sans font-[700] text-xs uppercase tracking-widest text-gray-400 mb-2">
+                      {lang === 'es' ? 'Antes de descargar' : 'Before downloading'}
+                    </p>
+                    <ul className="space-y-1.5">
+                      {preAnalysisResult.topPriorities.slice(0, 3).map((p, i) => (
+                        <li key={i} className="flex items-start gap-2">
+                          <span className="flex-shrink-0 w-4 h-4 rounded-full bg-amber-100 flex items-center justify-center mt-0.5">
+                            <span className="font-sans font-[900] text-[9px] text-amber-600">{i + 1}</span>
+                          </span>
+                          <p className="font-sans text-xs text-gray-600 leading-relaxed">{p}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Actions */}
+            {!preAnalyzing && (
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => { setShowPreDownload(false); handlePdfExport() }}
+                  disabled={exportingPdf}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-sans font-[900] text-xs uppercase tracking-wider text-white transition-all duration-200 hover:opacity-90 disabled:opacity-60"
+                  style={{ backgroundColor: '#092c64' }}
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  {lang === 'es' ? 'Descargar PDF' : 'Download PDF'}
+                </button>
+                <button
+                  onClick={() => setShowPreDownload(false)}
+                  className="px-4 py-2.5 rounded-xl font-sans font-[700] text-xs uppercase tracking-wider border transition-all duration-200 hover:border-gray-300"
+                  style={{ borderColor: '#e5e7eb', color: '#9ca3af' }}
+                >
+                  {lang === 'es' ? 'Cerrar' : 'Close'}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
     </div>
   )

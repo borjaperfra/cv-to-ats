@@ -37,12 +37,15 @@ Required fields:
 
 - "keywordsFaltantes": array of up to 12 important keywords/skills/requirements from the JD that are missing or insufficiently represented in the CV. Sorted by importance.
 
+- "requisitosExcluyentes": array of up to 6 requirements from the JD that are strictly mandatory (look for: "required", "mandatory", "must have", "essential", "imprescindible", "requerido", "necesario", "obligatorio"). If no explicit mandatory markers exist, infer the 3-4 most critical technical requirements from the role's core responsibilities. Include only requirements that are MISSING from the CV. Empty array [] if the CV meets all critical requirements.
+
 - "sugerencias": array of exactly 4 to 6 specific suggestions to better tailor the CV to this job. Each suggestion:
   - "titulo": short actionable title in the specified language
   - "pasos": array of exactly 3 concrete steps, each with:
     - "texto": specific action in the specified language
     - "terminos": array of 1-3 exact substrings from "texto" to bold
   - "prioridad": "alta", "media" or "baja"
+  - "sugerencia": a short (max 50 words) copy-paste ready text example showing what the improved CV content looks like. Write only the text to add or replace — not an instruction. If no concrete rewrite is possible, set to null.
 
 JSON structure:
 {
@@ -54,11 +57,13 @@ JSON structure:
   "resumenMatchTerminos": ["<substring>", ...],
   "keywordsPresentes": ["<string>", ...],
   "keywordsFaltantes": ["<string>", ...],
+  "requisitosExcluyentes": ["<string>", ...],
   "sugerencias": [
     {
       "titulo": "<string>",
       "pasos": [{ "texto": "<string>", "terminos": ["<substring>", ...] }],
-      "prioridad": "<alta|media|baja>"
+      "prioridad": "<alta|media|baja>",
+      "sugerencia": "<copy-paste text or null>"
     }
   ]
 }
@@ -100,11 +105,12 @@ export async function matchWithGemini(cvText: string, jdText: string, lang: 'es'
     throw new Error('La respuesta no tenía los campos necesarios. Por favor, inténtalo de nuevo.')
   }
 
-  parsed.nombre              = parsed.nombre ?? ''
-  parsed.empresa             = parsed.empresa ?? ''
-  parsed.resumenMatchTerminos = parsed.resumenMatchTerminos ?? []
-  parsed.keywordsPresentes   = parsed.keywordsPresentes ?? []
-  parsed.keywordsFaltantes   = parsed.keywordsFaltantes ?? []
+  parsed.nombre                = parsed.nombre ?? ''
+  parsed.empresa               = parsed.empresa ?? ''
+  parsed.resumenMatchTerminos  = parsed.resumenMatchTerminos ?? []
+  parsed.keywordsPresentes     = parsed.keywordsPresentes ?? []
+  parsed.keywordsFaltantes     = parsed.keywordsFaltantes ?? []
+  parsed.requisitosExcluyentes = parsed.requisitosExcluyentes ?? []
 
   return parsed
 }

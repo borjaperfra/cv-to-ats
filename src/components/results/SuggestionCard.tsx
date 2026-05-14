@@ -23,6 +23,7 @@ function buildCopyText(titulo: string, pasos: Suggestion['pasos'], priorityLabel
 export default function SuggestionCard({ suggestion }: SuggestionCardProps) {
   const [copied, setCopied] = useState(false)
   const [copiedStep, setCopiedStep] = useState<number | null>(null)
+  const [copiedSugerencia, setCopiedSugerencia] = useState(false)
 
   const handleCopyStep = (text: string, index: number) => {
     navigator.clipboard.writeText(text).then(() => {
@@ -41,6 +42,14 @@ export default function SuggestionCard({ suggestion }: SuggestionCardProps) {
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
+  const handleCopySugerencia = () => {
+    if (!suggestion.sugerencia) return
+    navigator.clipboard.writeText(suggestion.sugerencia).then(() => {
+      setCopiedSugerencia(true)
+      setTimeout(() => setCopiedSugerencia(false), 2000)
     })
   }
 
@@ -133,6 +142,40 @@ export default function SuggestionCard({ suggestion }: SuggestionCardProps) {
           </li>
         ))}
       </ul>
+
+      {/* Sugerencia block */}
+      {suggestion.sugerencia && (
+        <div className="mt-4 pt-4 border-t border-gray-100">
+          <p className="font-sans font-[700] text-[10px] uppercase tracking-widest mb-2" style={{ color: '#9ca3af' }}>
+            Ejemplo de redacción
+          </p>
+          <div className="relative group/sug flex items-start gap-2 rounded-xl px-4 py-3"
+            style={{ backgroundColor: '#f0fdf9', border: '1px solid #b2e8e8' }}>
+            <p className="font-sans text-sm leading-relaxed flex-1 italic" style={{ color: '#0f5c5e' }}>
+              &ldquo;{suggestion.sugerencia}&rdquo;
+            </p>
+            <button
+              onClick={handleCopySugerencia}
+              title="Copiar ejemplo"
+              className="no-print flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-md opacity-0 group-hover/sug:opacity-100 transition-opacity duration-200"
+              style={{
+                backgroundColor: copiedSugerencia ? '#0DA1A4' : '#e6f7f7',
+                color: copiedSugerencia ? '#ffffff' : '#0DA1A4',
+              }}
+            >
+              {copiedSugerencia ? (
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
+              ) : (
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

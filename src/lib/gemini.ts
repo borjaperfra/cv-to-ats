@@ -80,6 +80,8 @@ Required fields:
 
 - "alertasCriticas": array of strings in the specified language describing severe issues that can cause ATS parsing failures. Only include real problems detected in the text (e.g. photo detected, multiple columns, complex tables, decorative special characters, URLs with spaces). Empty array [] if no critical alerts.
 
+- "gapsCarrera": array of strings in the specified language describing detected employment gaps of 6 months or more between consecutive work experiences. Each string must name the specific gap (e.g. "8 meses sin actividad laboral entre Empresa X (mar 2021) y Empresa Y (nov 2021)"). Return empty array [] if no significant gaps found. This is informational only — do NOT alter category scores because of gaps.
+
 - "topPriorities": array of 3 concrete actions in the specified language (infinitive phrases, gender-neutral). Each must reference something specific found (or missing) in this CV — a real section, skill, job title, or gap. Never write a priority that could apply to any CV.
 
 IMPORTANT:
@@ -109,6 +111,7 @@ JSON structure:
     "densidadKeywords": <number>
   },
   "alertasCriticas": ["<string>", ...],
+  "gapsCarrera": ["<string>", ...],
   "topPriorities": ["<string>", "<string>", "<string>"]
 }
 
@@ -168,6 +171,7 @@ MANDATORY RULES — NO EXCEPTIONS:
 6. Each suggestion needs exactly 3 "pasos".
 7. NEVER suggest changing, correcting, or updating date ranges, employment years, graduation years, or any other temporal information. All dates in the CV are facts from the candidate's history — do not flag them as wrong, future, outdated, or in need of updating.
 8. NEVER describe experience as "outdated" based on the year it occurred. Do not suggest that any listed experience is in the future or needs its dates corrected.
+9. Each suggestion MUST include a "sugerencia" field: a short (max 50 words), copy-paste ready text example showing what the improved content looks like. Write only the specific text to add or replace — not an instruction. For example: if adding skills, write the updated skills line ("Figma, Design Thinking, Wireframing"); if rewriting a bullet, write the improved bullet. If no concrete text rewrite is possible, set to null.
 
 Return ONLY valid JSON — no markdown, no text outside the JSON object:
 {
@@ -183,7 +187,8 @@ Return ONLY valid JSON — no markdown, no text outside the JSON object:
               "terminos": ["<1-3 key substrings from texto that appear literally in texto>"]
             }
           ],
-          "prioridad": "<alta|media|baja>"
+          "prioridad": "<alta|media|baja>",
+          "sugerencia": "<copy-paste text example or null>"
         }
       ]
     }
@@ -208,6 +213,7 @@ interface ScoringResult {
   skillsDetectadas: string[]
   metricas:         { palabras: number; paginasEstimadas: number; densidadKeywords: number }
   alertasCriticas:  string[]
+  gapsCarrera:      string[]
   topPriorities:    string[]
 }
 
@@ -278,6 +284,7 @@ export async function analyzeWithGemini(cvText: string, lang: 'es' | 'en' = 'es'
     skillsDetectadas: scoring.skillsDetectadas ?? [],
     metricas:         scoring.metricas,
     alertasCriticas:  scoring.alertasCriticas ?? [],
+    gapsCarrera:      scoring.gapsCarrera ?? [],
     categories,
     topPriorities:    scoring.topPriorities ?? [],
     analyzedAt:       new Date().toISOString(),

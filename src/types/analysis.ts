@@ -6,9 +6,10 @@ export interface SubItem {
 }
 
 export interface Suggestion {
-  titulo:    string      // card title — bold heading for the suggestion group
-  pasos:     SubItem[]   // 2–4 specific actionable bullet points
-  prioridad: Prioridad
+  titulo:     string      // card title — bold heading for the suggestion group
+  pasos:      SubItem[]   // 2–4 specific actionable bullet points
+  prioridad:  Prioridad
+  sugerencia?: string    // concrete copy-paste example showing the improved text
 }
 
 export interface CategoryAnalysis {
@@ -34,6 +35,7 @@ export interface ATSAnalysisResult {
   skillsDetectadas?: string[]      // detected skills/technologies as tags (max 15)
   metricas?:        Metricas
   alertasCriticas?: string[]       // critical parsing issues — empty array = none
+  gapsCarrera?:     string[]       // detected employment gaps >6 months (informational)
   categories:       CategoryAnalysis[]
   topPriorities:    string[]
   analyzedAt:       string
