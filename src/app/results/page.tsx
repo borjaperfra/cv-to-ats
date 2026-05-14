@@ -29,8 +29,7 @@ export default function ResultsPage() {
       const parsed = JSON.parse(raw) as ATSAnalysisResult
       setResult(parsed)
       saveToHistory(parsed)
-      const isMilestone = parsed.milestone || process.env.NODE_ENV === 'development'
-      if (isMilestone) setShowMilestone(true)
+      if (parsed.milestone) setShowMilestone(true)
     } catch {
       router.replace('/')
     }
