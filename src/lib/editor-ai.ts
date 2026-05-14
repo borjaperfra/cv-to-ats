@@ -167,29 +167,29 @@ function fixMojibake(s: string): string {
     .replace(/â€™/g, '’') // right single quote
     .replace(/â€˜/g, '‘') // left single quote
     .replace(/â€œ/g, '“') // left double quote
-    .replace(/â€/g, '”') // right double quote
-    .replace(/â€“/g, '–') // en dash
-    .replace(/â€”/g, '—') // em dash
-    .replace(/Ã /g, 'à') // à
-    .replace(/Ã¡/g, 'á') // á
-    .replace(/Ã¢/g, 'â') // â
-    .replace(/Ã¤/g, 'ä') // ä
-    .replace(/Ã¦/g, 'æ') // æ
-    .replace(/Ã§/g, 'ç') // ç
-    .replace(/Ã¨/g, 'è') // è
-    .replace(/Ã©/g, 'é') // é
-    .replace(/Ã­/g, 'í') // í
-    .replace(/Ã®/g, 'î') // î
-    .replace(/Ã¯/g, 'ï') // ï
-    .replace(/Ã±/g, 'ñ') // ñ
-    .replace(/Ã²/g, 'ò') // ò
-    .replace(/Ã³/g, 'ó') // ó
-    .replace(/Ã´/g, 'ô') // ô
-    .replace(/Ã¶/g, 'ö') // ö
-    .replace(/Ã¹/g, 'ù') // ù
-    .replace(/Ãº/g, 'ú') // ú
-    .replace(/Ã»/g, 'û') // û
-    .replace(/Ã¼/g, 'ü') // ü
+    .replace(/â€/g, '”')  // right double quote
+    .replace(/â€"/g, '–') // en dash
+    .replace(/â€"/g, '—') // em dash
+    .replace(/Ã /g, 'à')  // à
+    .replace(/Ã¡/g, 'á')  // á
+    .replace(/Ã¢/g, 'â')  // â
+    .replace(/Ã¤/g, 'ä')  // ä
+    .replace(/Ã¦/g, 'æ')  // æ
+    .replace(/Ã§/g, 'ç')  // ç
+    .replace(/Ã¨/g, 'è')  // è
+    .replace(/Ã©/g, 'é')  // é
+    .replace(/Ã­/g, 'í')  // í
+    .replace(/Ã®/g, 'î')  // î
+    .replace(/Ã¯/g, 'ï')  // ï
+    .replace(/Ã±/g, 'ñ')  // ñ
+    .replace(/Ã²/g, 'ò')  // ò
+    .replace(/Ã³/g, 'ó')  // ó
+    .replace(/Ã´/g, 'ô')  // ô
+    .replace(/Ã¶/g, 'ö')  // ö
+    .replace(/Ã¹/g, 'ù')  // ù
+    .replace(/Ãº/g, 'ú')  // ú
+    .replace(/Ã»/g, 'û')  // û
+    .replace(/Ã¼/g, 'ü')  // ü
     .replace(/Ã/g, 'Á') // Á
     .replace(/Ã/g, 'É') // É
     .replace(/Ã/g, 'Í') // Í
@@ -211,25 +211,37 @@ function parseNaNJson(text: string): RawCVData {
 
 // ─── Translate CV content ─────────────────────────────────────────────────────
 
-interface TranslatableSlice {
-  cargo: string
-  experiencia: Array<{ cargo: string; bullets: string[] }>
-  proyectos: Array<{ descripcion: string }>
-  educacion: Array<{ titulo: string; campo: string; logros: string[] }>
-}
+const TRANSLATE_PROMPT = (cvData: RawCVData, targetLang: CvLang) => `
+You are a professional CV translator. Translate the CV content below to ${targetLang === 'en' ? 'English' : 'Spanish'}.
 
-const TRANSLATE_PROMPT = (slice: TranslatableSlice, targetLang: CvLang) => `
-You are a professional CV translator. Translate the fields below to ${targetLang === 'en' ? 'English' : 'Spanish'}.
+STRICT RULES — translate ONLY these fields:
+- personalInfo.cargo
+- resumen
+- experiencia[].cargo
+- experiencia[].bullets[] (every bullet string)
+- proyectos[].nombre
+- proyectos[].descripcion
+- educacion[].titulo
+- educacion[].campo
+- educacion[].logros[] (every achievement string)
 
-STRICT RULES:
-- Translate every string value in the JSON below.
-- Keep proper nouns (product names, framework names, company names, acronyms) unchanged.
-- Return ONLY valid JSON with the exact same structure as the input — no markdown, no extra text.
-- Preserve accented characters as real Unicode (á, é, í, ó, ú, ñ, ç, etc.), not escape sequences.
+DO NOT translate (keep byte-for-byte identical):
+- personalInfo.nombre, email, telefono, linkedin, ubicacion, website
+- experiencia[].empresa, experiencia[].ubicacion, experiencia[].fechaInicio, experiencia[].fechaFin, experiencia[].actual
+- educacion[].institucion, educacion[].fechaInicio, educacion[].fechaFin
+- proyectos[].url
+- habilidades (all skill arrays — technology names are universal)
+- idiomas (language names and levels)
 
-FIELDS TO TRANSLATE:
-${JSON.stringify(slice, null, 2)}
+Keep proper nouns (product names, framework names, company names, acronyms) unchanged even inside translated strings.
+Preserve accented characters as real Unicode (á, é, í, ó, ú, ñ, ç, etc.), not escape sequences.
+Return ONLY valid JSON with the exact same structure as the input — no markdown, no extra text.
+
+CV JSON:
+${JSON.stringify(cvData, null, 2)}
 `.trim()
+
+const TRANSLATE_TIMEOUT_MS = 160_000
 
 // ─── Public functions ─────────────────────────────────────────────────────────
 
@@ -269,44 +281,10 @@ export async function translateCVContent(cvData: CVData, targetLang: CvLang): Pr
     habilidades:  cvData.habilidades,
     idiomas:      cvData.idiomas.map(({ id: _id, ...rest }) => rest),
   }
-
-  const slice: TranslatableSlice = {
-    cargo:       raw.personalInfo.cargo,
-    experiencia: raw.experiencia.map(e => ({ cargo: e.cargo, bullets: e.bullets })),
-    proyectos:   raw.proyectos.map(p => ({ descripcion: p.descripcion })),
-    educacion:   raw.educacion.map(e => ({ titulo: e.titulo, campo: e.campo ?? '', logros: e.logros ?? [] })),
-  }
-
-  const text = await withGeminiRetry(() => nanComplete(TRANSLATE_PROMPT(slice, targetLang)))
-
-  const cleanedText = decodeUnicodeEscapes(
-    text
-      .replace(/^```json\s*/i, '')
-      .replace(/^```\s*/i, '')
-      .replace(/\s*```$/i, '')
-      .trim()
-  )
-  const translated = JSON.parse(cleanedText) as TranslatableSlice
-
-  const merged: RawCVData = {
-    ...raw,
-    personalInfo: { ...raw.personalInfo, cargo: translated.cargo ?? raw.personalInfo.cargo },
-    experiencia: raw.experiencia.map((e, i) => ({
-      ...e,
-      cargo:   translated.experiencia[i]?.cargo   ?? e.cargo,
-      bullets: translated.experiencia[i]?.bullets ?? e.bullets,
-    })),
-    proyectos: raw.proyectos.map((p, i) => ({
-      ...p,
-      descripcion: translated.proyectos[i]?.descripcion ?? p.descripcion,
-    })),
-    educacion: raw.educacion.map((e, i) => ({
-      ...e,
-      titulo: translated.educacion[i]?.titulo ?? e.titulo,
-      campo:  translated.educacion[i]?.campo  ?? e.campo,
-      logros: translated.educacion[i]?.logros ?? e.logros,
-    })),
-  }
-
-  return hydrateCVData(merged)
+  const text = await nanComplete(TRANSLATE_PROMPT(raw, targetLang), TRANSLATE_TIMEOUT_MS)
+  const translated = parseNaNJson(text) as RawCVData
+  translated.personalInfo = raw.personalInfo
+  translated.habilidades = raw.habilidades
+  translated.idiomas = raw.idiomas
+  return hydrateCVData(translated)
 }

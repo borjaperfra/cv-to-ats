@@ -2,13 +2,13 @@ const NAN_BASE = 'https://api.nan.builders/v1'
 const NAN_MODEL = 'gemma4'
 const FETCH_TIMEOUT_MS = 80_000
 
-export async function nanComplete(prompt: string): Promise<string> {
+export async function nanComplete(prompt: string, timeoutMs = FETCH_TIMEOUT_MS): Promise<string> {
   if (!process.env.NAN_API_KEY) {
     throw new Error('NAN_API_KEY environment variable is not set.')
   }
 
   const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
 
   try {
     const res = await fetch(`${NAN_BASE}/chat/completions`, {

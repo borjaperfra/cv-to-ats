@@ -348,7 +348,7 @@ export default function EditorPage() {
     setLoadError('')
     try {
       const ctrl = new AbortController()
-      const tid = setTimeout(() => ctrl.abort(), 90_000)
+      const tid = setTimeout(() => ctrl.abort(), 180_000)
       const res = await fetch('/api/editor/parse', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
