@@ -431,35 +431,6 @@ export default function EditorPage() {
   }))
   const removeIdioma = (id: string) => setCv(prev => ({ ...prev, idiomas: prev.idiomas.filter(l => l.id !== id) }))
 
-  // ─ Pre-download analysis ─
-  function buildCvPlainText(data: CVData): string {
-    const p = data.personalInfo
-    const parts: string[] = []
-    if (p.nombre)    parts.push(p.nombre)
-    if (p.cargo)     parts.push(p.cargo)
-    const contact = [p.email, p.telefono, p.linkedin, p.ubicacion, p.website].filter(Boolean)
-    if (contact.length) parts.push(contact.join(' | '))
-    const allSkills = [
-      ...data.habilidades.languages, ...data.habilidades.frameworks,
-      ...data.habilidades.databases, ...data.habilidades.tools, ...data.habilidades.practices,
-    ]
-    if (allSkills.length) parts.push('Skills: ' + allSkills.join(', '))
-    for (const exp of data.experiencia) {
-      parts.push(`${exp.cargo} at ${exp.empresa} (${exp.fechaInicio} - ${exp.actual ? 'Present' : exp.fechaFin})`)
-      exp.bullets.filter(Boolean).forEach(b => parts.push('- ' + b))
-    }
-    for (const edu of data.educacion) {
-      parts.push(`${edu.titulo}${edu.campo ? ', ' + edu.campo : ''} — ${edu.institucion} (${edu.fechaInicio} - ${edu.fechaFin})`)
-    }
-    for (const proj of data.proyectos) {
-      parts.push(`Project: ${proj.nombre} — ${proj.descripcion}`)
-    }
-    for (const l of data.idiomas) {
-      parts.push(`${l.idioma}: ${l.nivel}`)
-    }
-    return parts.join('\n')
-  }
-
   // ─ PDF Export ─
   const handlePdfExport = async () => {
     if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
