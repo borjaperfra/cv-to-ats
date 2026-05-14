@@ -33,8 +33,8 @@ export default function ExportButton({ variant = 'outline' }: ExportButtonProps)
         Descargar PDF
       </button>
       {isMobile && (
-        <p className="font-sans text-[10px] text-gray-400 leading-tight">
-          En el menú de impresión, selecciona &ldquo;Guardar como PDF&rdquo;
+        <p className="font-sans text-[10px] leading-tight" style={{ color: '#0DA1A4' }}>
+          En iOS: pulsa el botón de compartir y selecciona &ldquo;Imprimir&rdquo; → &ldquo;PDF&rdquo;
         </p>
       )}
     </div>

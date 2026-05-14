@@ -490,6 +490,15 @@ export default function EditorPage() {
 
   // ─ PDF Export ─
   const handlePdfExport = async () => {
+    if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+      document.body.classList.add('editor-print')
+      const cleanup = () => document.body.classList.remove('editor-print')
+      window.addEventListener('afterprint', cleanup, { once: true })
+      setTimeout(cleanup, 30000)
+      window.print()
+      return
+    }
+
     setExportingPdf(true)
     const cvToExport = translatedCv[cvLang] ?? cv
     const nombre = cvToExport.personalInfo.nombre || 'cv'
@@ -575,13 +584,7 @@ export default function EditorPage() {
       }
 
       const filename = `${nombre.replace(/\s+/g, '_').toLowerCase()}_cv.pdf`
-      const blob = pdf.output('blob')
-      const pdfFile = new File([blob], filename, { type: 'application/pdf' })
-      if (typeof navigator.canShare === 'function' && navigator.canShare({ files: [pdfFile] })) {
-        await navigator.share({ files: [pdfFile], title: 'Mi CV' })
-      } else {
-        pdf.save(filename)
-      }
+      pdf.save(filename)
     } finally {
       setExportingPdf(false)
     }
