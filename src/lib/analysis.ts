@@ -56,15 +56,15 @@ Evaluate these 6 categories using the scoring criteria below. For each, produce:
 
 Scoring criteria:
 
-1. Keywords & skills — count each unique, explicitly named technology, programming language, framework, library, database, cloud platform, DevOps/MLOps tool, named methodology (e.g. Scrum, Kanban), or professional certification. Each item counts once regardless of how often it appears. Do NOT count generic soft skills ("communication", "leadership"), job titles, industry names, or vague phrases ("web technologies", "cloud experience").
+1. Keywords & skills — count each unique, explicitly named technology, programming language, framework, library, database, cloud platform, DevOps/MLOps tool, named methodology (e.g. Scrum, Kanban), or professional certification. Each item counts once regardless of how often it appears. Do NOT count generic soft skills ("communication", "leadership"), job titles, industry names, or vague phrases ("web technologies", "cloud experience"). STRICT: if doubtful whether something qualifies, do NOT count it. A CV that only mentions 3–4 specific tools must score 35–54, not higher.
    - 85–100: 15+ distinct items | 70–84: 10–14 | 55–69: 6–9 | 35–54: 3–5 | <35: 0–2
 
-2. Format & parseability — start at 90. Apply deductions only for confirmed, unambiguous issues. When in doubt, do NOT deduct.
+2. Format & parseability — start at 75. Apply deductions only for confirmed, unambiguous issues. When in doubt, do NOT deduct.
    - Two or more text columns running side by side (not a simple two-cell table): −35
    - Main content inside merged-cell tables (not simple bordered boxes): −25
    - CV text exists only as embedded images (no selectable text at all): −60
    - Non-standard decorative characters used as the sole bullet style (★, ⬛, custom glyphs — not "•" or "-"): −10
-   If none of the above apply, score exactly 90. Do not invent penalties.
+   If none of the above apply, score exactly 75. Do not invent penalties.
 
 3. Work experience structure — for each role, check four binary elements: company name present? Job title present? Start date present? End date or "present" present? Description (at least one line) present? Count total omissions across all roles. NOTE: overlapping date ranges across roles are valid and expected (e.g. a freelance or autonomous role running in parallel with a full-time position) — do not treat them as omissions or errors.
    - 85–100: 0 omissions | 70–84: 1–2 omissions | 50–69: 3–5 omissions | <50: 6+ omissions
@@ -83,9 +83,8 @@ For each category, write exactly 2 improvement suggestions. Each must follow thi
 - "titulo": short actionable title in the specified language
 - "pasos": exactly 2 steps, each with:
   - "texto": concrete step in 1-2 sentences naming specific CV content
-  - "terminos": array of 1-2 key substrings from "texto" that appear literally in "texto"
 - "prioridad": "alta" if category score < 60, "media" if 60–74, "baja" if ≥ 75
-- "sugerencia": max 30-word copy-paste text example showing improved content, or null
+- "sugerencia": max 30-word copy-paste text example showing improved content — ONLY include this for "alta" priority suggestions, set null for "media" and "baja"
 
 SUGGESTION RULES:
 1. Every step MUST name a specific element from THIS CV (job title, company, skill, section, date range). Generic steps are forbidden.
@@ -94,6 +93,10 @@ SUGGESTION RULES:
 4. NEVER suggest changing dates, employment years, or graduation years — all dates are historical facts.
 5. NEVER reorder work experience if the most recent position already appears first.
 6. NEVER suggest removing the candidate's name without providing an alternative placement.
+
+─── CALIBRATION ───────────────────────────────────────────────────────────────
+
+Score strictly. Most real-world CVs should score between 40–70. Reserve 80+ for genuinely strong CVs. If a CV has weak keywords, vague bullets and no quantified achievements, the overall result should feel like a wake-up call, not a pat on the back. When in doubt on any scoring band, choose the lower band.
 
 ─── IMPORTANT ─────────────────────────────────────────────────────────────────
 
@@ -126,15 +129,15 @@ SUGGESTION RULES:
       "suggestions": [
         {
           "titulo": "<string>",
-          "pasos": [{"texto": "<string>", "terminos": ["<string>"]}, {"texto": "<string>", "terminos": ["<string>"]}],
+          "pasos": [{"texto": "<string>"}, {"texto": "<string>"}],
           "prioridad": "<alta|media|baja>",
-          "sugerencia": "<string|null>"
+          "sugerencia": "<string or null — only for alta>"
         },
         {
           "titulo": "<string>",
-          "pasos": [{"texto": "<string>", "terminos": ["<string>"]}, {"texto": "<string>", "terminos": ["<string>"]}],
+          "pasos": [{"texto": "<string>"}, {"texto": "<string>"}],
           "prioridad": "<alta|media|baja>",
-          "sugerencia": "<string|null>"
+          "sugerencia": "<string or null — only for alta>"
         }
       ]
     }
