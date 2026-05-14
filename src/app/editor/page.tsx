@@ -475,88 +475,28 @@ export default function EditorPage() {
     const cvToExport = translatedCv[cvLang] ?? cv
     const nombre = cvToExport.personalInfo.nombre || 'cv'
     try {
-      const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
-        import('html2canvas'),
-        import('jspdf'),
-      ])
-
-      const element = document.getElementById('harvard-pdf-source')
-      if (!element) throw new Error('Template not found')
-
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        logging: false,
+      const res = await fetch('/api/editor/pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cvData: cvToExport,
+          lang: cvLang,
+          filename: nombre.replace(/\s+/g, '_').toLowerCase(),
+        }),
       })
-
-      const W = 210
-      const H = 297
-      const MARGIN = 12  // mm — top/bottom breathing room on each page
-      const pxPerMm = canvas.width / W
-      const nominalContentPx = (H - MARGIN * 2) * pxPerMm
-      const fullPagePx = Math.round(H * pxPerMm)
-      // Search up to 40mm upward from the nominal cut to find a white (gap) row
-      const searchPx = Math.round(40 * pxPerMm)
-
-      const canvasCtx = canvas.getContext('2d')!
-      const findCleanCut = (nominalY: number): number => {
-        const target = Math.round(nominalY)
-        const bandStart = Math.max(0, target - searchPx)
-        const bandH = target - bandStart
-        if (bandH <= 0) return target
-        const band = canvasCtx.getImageData(0, bandStart, canvas.width, bandH)
-        for (let row = bandH - 1; row >= 0; row--) {
-          let isWhite = true
-          for (let col = 0; col < canvas.width; col++) {
-            const idx = (row * canvas.width + col) * 4
-            if (band.data[idx] < 245 || band.data[idx + 1] < 245 || band.data[idx + 2] < 245) {
-              isWhite = false
-              break
-            }
-          }
-          if (isWhite) return bandStart + row
-        }
-        return target
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string }
+        throw new Error(err.error || 'Error al generar el PDF')
       }
-
-      // Build smart cut list: cut only at white rows, never through text
-      const cuts: number[] = [0]
-      while (true) {
-        const prev = cuts[cuts.length - 1]
-        const intended = prev + nominalContentPx
-        if (intended >= canvas.height) break
-        cuts.push(findCleanCut(intended))
-      }
-      cuts.push(canvas.height)
-
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
-
-      for (let page = 0; page < cuts.length - 1; page++) {
-        if (page > 0) pdf.addPage()
-
-        const srcY = cuts[page]
-        const srcH = cuts[page + 1] - srcY
-
-        const pageCanvas = document.createElement('canvas')
-        pageCanvas.width = canvas.width
-        pageCanvas.height = fullPagePx
-        const ctx = pageCanvas.getContext('2d')!
-        ctx.fillStyle = '#ffffff'
-        ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height)
-        const destY = page === 0 ? 0 : Math.round(MARGIN * pxPerMm)
-        ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, destY, canvas.width, srcH)
-
-        pdf.addImage(
-          pageCanvas.toDataURL('image/jpeg', 0.95),
-          'JPEG',
-          0, 0,
-          W, H,
-        )
-      }
-
-      const filename = `${nombre.replace(/\s+/g, '_').toLowerCase()}_cv.pdf`
-      pdf.save(filename)
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${nombre.replace(/\s+/g, '_').toLowerCase()}_cv.pdf`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
     } finally {
       setExportingPdf(false)
     }
