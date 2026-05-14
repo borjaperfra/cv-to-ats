@@ -1,4 +1,4 @@
-import type { MatchResult } from '@/types/match'
+import type { MatchResult, MatchSuggestion } from '@/types/match'
 import { withGeminiRetry } from '@/lib/gemini-retry'
 import { nanComplete } from '@/lib/nan-client'
 
@@ -39,13 +39,19 @@ Required fields:
 
 - "requisitosExcluyentes": array of up to 6 requirements from the JD that are strictly mandatory (look for: "required", "mandatory", "must have", "essential", "imprescindible", "requerido", "necesario", "obligatorio"). If no explicit mandatory markers exist, infer the 3-4 most critical technical requirements from the role's core responsibilities. Include only requirements that are MISSING from the CV. Empty array [] if the CV meets all critical requirements.
 
-- "sugerencias": array of exactly 4 to 6 specific suggestions to better tailor the CV to this job. Each suggestion:
-  - "titulo": short actionable title in the specified language
-  - "pasos": array of exactly 3 concrete steps, each with:
-    - "texto": specific action in the specified language
-    - "terminos": array of 1-3 exact substrings from "texto" to bold
-  - "prioridad": "alta", "media" or "baja"
-  - "sugerencia": a short (max 50 words) copy-paste ready text example showing what the improved CV content looks like. Write only the text to add or replace — not an instruction. If no concrete rewrite is possible, set to null.
+- "sugerencias": array of exactly 4 to 6 career development suggestions. Each suggestion addresses a specific gap between the CV and this job offer — NOT advice on how to rewrite the CV, but concrete actions the candidate should take to genuinely close the gap: a course or certification to obtain, a side project to build, or a type of experience to seek. Each suggestion:
+  - "tipo": one of "formacion" (course, certification, study), "proyecto" (build something concrete), "experiencia" (seek a specific type of real-world exposure)
+  - "titulo": short actionable title in the specified language (infinitive verb, e.g. "Certificarse en AWS", "Construir una API con GraphQL")
+  - "descripcion": 2-3 sentences in the specified language. First: which specific gap from this job offer it addresses (name the exact missing skill or requirement). Then: what concretely to do and why it raises the match.
+  - "terminos": array of 1-3 exact substrings from "descripcion" that should be highlighted in bold (key skills or actions). Must appear literally in "descripcion".
+  - "impacto": "alto" if this closes a knockout or critical requirement, "medio" if it fills an important gap, "bajo" if it adds a nice-to-have.
+  - "recursos": array of 1-3 specific, named resources — exact course titles, certification names, platforms, or tools (e.g. "AWS Certified Solutions Architect – Associate", "Kubernetes for Developers (CKAD)", "The Odin Project"). Empty array if no obvious specific resource applies.
+
+RULES for sugerencias:
+- Each suggestion must address a DIFFERENT gap. Do not write two suggestions about the same missing skill.
+- Sort by impacto descending: "alto" first, then "medio", then "bajo".
+- Name the specific skill, technology, or requirement from the JD in every descripcion — never write generic advice.
+- NEVER suggest rewriting or editing the CV. These are real career actions, not document edits.
 
 JSON structure:
 {
@@ -60,10 +66,12 @@ JSON structure:
   "requisitosExcluyentes": ["<string>", ...],
   "sugerencias": [
     {
+      "tipo": "<formacion|proyecto|experiencia>",
       "titulo": "<string>",
-      "pasos": [{ "texto": "<string>", "terminos": ["<substring>", ...] }],
-      "prioridad": "<alta|media|baja>",
-      "sugerencia": "<copy-paste text or null>"
+      "descripcion": "<string>",
+      "terminos": ["<substring>", ...],
+      "impacto": "<alto|medio|bajo>",
+      "recursos": ["<string>", ...]
     }
   ]
 }
