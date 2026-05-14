@@ -5,10 +5,10 @@ import { CV_TEMPLATE_LABELS, type CvLang } from '@/lib/cv-labels'
 const pt = (mm: number) => mm * 2.835
 
 const C = {
-  text:      '#333333',
-  darktext:  '#414141',
-  gray:      '#5D5D5D',
-  light:     '#999999',
+  text:     '#333333',
+  darktext: '#414141',
+  gray:     '#5D5D5D',
+  light:    '#999999',
 }
 
 const s = StyleSheet.create({
@@ -26,7 +26,7 @@ const s = StyleSheet.create({
 
   // ── Header ──────────────────────────────────────────────
   headerCenter:    { alignItems: 'center', marginBottom: pt(2) },
-  nameRow:         { flexDirection: 'row', justifyContent: 'center', marginBottom: 10 },
+  nameRow:         { flexDirection: 'row', justifyContent: 'center', marginBottom: 20 },
   firstName:       { fontSize: 28, fontFamily: 'Helvetica', color: C.gray },
   lastName:        { fontSize: 28, fontFamily: 'Helvetica-Bold', color: C.text },
   namePlaceholder: { fontSize: 28, fontFamily: 'Helvetica-Bold', color: '#cccccc' },
@@ -34,7 +34,7 @@ const s = StyleSheet.create({
   contact:         { fontSize: 7.5, color: C.light },
 
   // ── Section header ───────────────────────────────────────
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', marginTop: pt(8), marginBottom: pt(3) },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', marginTop: pt(4), marginBottom: pt(3) },
   sectionTitle:  { fontFamily: 'Helvetica-Bold', fontSize: 14, color: C.text, marginRight: 6 },
   sectionLine:   { flex: 1, borderBottomWidth: 0.9, borderBottomColor: C.gray },
 
@@ -44,8 +44,8 @@ const s = StyleSheet.create({
   skillLabel:      { fontFamily: 'Helvetica-Bold', width: pt(40), flexShrink: 0 },
   skillValue:      { flex: 1 },
 
-  // ── Entry rows ───────────────────────────────────────────
-  entry:      { marginBottom: pt(5) },
+  // ── Entries ──────────────────────────────────────────────
+  entry:      { marginBottom: pt(4) },
   entrySmall: { marginBottom: pt(3) },
   rowSpaced:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
 
@@ -107,7 +107,7 @@ export default function HarvardTemplatePdf({ data, lang = 'en' }: { data: CVData
     <Document>
       <Page size="A4" style={s.page}>
 
-        {/* Header */}
+        {/* ── Header ── */}
         <View style={s.headerCenter}>
           <View style={s.nameRow}>
             {p.nombre ? (
@@ -125,9 +125,9 @@ export default function HarvardTemplatePdf({ data, lang = 'en' }: { data: CVData
           )}
         </View>
 
-        {/* Skills */}
+        {/* ── Skills — section header tied to content with wrap={false} ── */}
         {hasSkills && (
-          <View>
+          <View wrap={false}>
             <SectionHeader title={L.skills} />
             <View style={s.skillsContainer}>
               {SKILL_ROWS.map(({ key, label }) =>
@@ -142,83 +142,71 @@ export default function HarvardTemplatePdf({ data, lang = 'en' }: { data: CVData
           </View>
         )}
 
-        {/* Experience */}
-        {experiencia.length > 0 && (
-          <View>
-            <SectionHeader title={L.experience} />
-            {experiencia.map(exp => {
-              const period = exp.actual
-                ? `${exp.fechaInicio} – ${L.present}`
-                : `${exp.fechaInicio} – ${exp.fechaFin}`
-              return (
-                <View key={exp.id} style={s.entry} wrap={false}>
-                  <View style={s.rowSpaced}>
-                    <Text style={s.company}>{exp.empresa}</Text>
-                    <Text style={s.period}>{period}</Text>
-                  </View>
-                  {(exp.cargo || exp.ubicacion) ? (
-                    <View style={s.rowSpaced}>
-                      <Text style={s.entryRole}>{exp.cargo ?? ''}</Text>
-                      {exp.ubicacion ? <Text style={s.entryLoc}>{exp.ubicacion}</Text> : null}
-                    </View>
-                  ) : null}
-                  {exp.bullets.filter(Boolean).map((b, i) => (
-                    <View key={i} style={s.bulletRow}>
-                      <Text style={s.bulletDot}>•</Text>
-                      <Text style={s.bulletText}>{b}</Text>
-                    </View>
-                  ))}
-                </View>
-              )
-            })}
-          </View>
-        )}
-
-        {/* Projects */}
-        {proyectos.length > 0 && (
-          <View>
-            <SectionHeader title={L.projects} />
-            {proyectos.map(proj => (
-              <View key={proj.id} style={s.entrySmall} wrap={false}>
-                <View style={s.rowSpaced}>
-                  <Text style={s.company}>{proj.nombre}</Text>
-                  {proj.url ? <Text style={s.projUrl}>{proj.url}</Text> : null}
-                </View>
-                {proj.descripcion ? <Text style={s.projDesc}>{proj.descripcion}</Text> : null}
+        {/* ── Experience — header inside first entry's wrap={false} block ── */}
+        {experiencia.map((exp, idx) => {
+          const period = exp.actual
+            ? `${exp.fechaInicio} – ${L.present}`
+            : `${exp.fechaInicio} – ${exp.fechaFin}`
+          return (
+            <View key={exp.id} style={s.entry} wrap={false}>
+              {idx === 0 && <SectionHeader title={L.experience} />}
+              <View style={s.rowSpaced}>
+                <Text style={s.company}>{exp.empresa}</Text>
+                <Text style={s.period}>{period}</Text>
               </View>
-            ))}
-          </View>
-        )}
-
-        {/* Education */}
-        {educacion.length > 0 && (
-          <View>
-            <SectionHeader title={L.education} />
-            {educacion.map(edu => {
-              const period = [edu.fechaInicio, edu.fechaFin].filter(Boolean).join(' – ')
-              const degree = [edu.titulo, edu.campo].filter(Boolean).join(', ')
-              return (
-                <View key={edu.id} style={s.entrySmall} wrap={false}>
-                  <View style={s.rowSpaced}>
-                    <Text style={s.company}>{edu.institucion || ''}</Text>
-                    {period ? <Text style={s.period}>{period}</Text> : null}
-                  </View>
-                  {degree ? <Text style={s.degreeText}>{degree}</Text> : null}
-                  {edu.logros.filter(Boolean).map((l, i) => (
-                    <View key={i} style={s.bulletRow}>
-                      <Text style={s.bulletDot}>•</Text>
-                      <Text style={s.bulletText}>{l}</Text>
-                    </View>
-                  ))}
+              {(exp.cargo || exp.ubicacion) ? (
+                <View style={s.rowSpaced}>
+                  <Text style={s.entryRole}>{exp.cargo ?? ''}</Text>
+                  {exp.ubicacion ? <Text style={s.entryLoc}>{exp.ubicacion}</Text> : null}
                 </View>
-              )
-            })}
-          </View>
-        )}
+              ) : null}
+              {exp.bullets.filter(Boolean).map((b, i) => (
+                <View key={i} style={s.bulletRow}>
+                  <Text style={s.bulletDot}>•</Text>
+                  <Text style={s.bulletText}>{b}</Text>
+                </View>
+              ))}
+            </View>
+          )
+        })}
 
-        {/* Languages spoken */}
+        {/* ── Projects — header inside first entry's wrap={false} block ── */}
+        {proyectos.map((proj, idx) => (
+          <View key={proj.id} style={s.entrySmall} wrap={false}>
+            {idx === 0 && <SectionHeader title={L.projects} />}
+            <View style={s.rowSpaced}>
+              <Text style={s.company}>{proj.nombre}</Text>
+              {proj.url ? <Text style={s.projUrl}>{proj.url}</Text> : null}
+            </View>
+            {proj.descripcion ? <Text style={s.projDesc}>{proj.descripcion}</Text> : null}
+          </View>
+        ))}
+
+        {/* ── Education — header inside first entry's wrap={false} block ── */}
+        {educacion.map((edu, idx) => {
+          const period = [edu.fechaInicio, edu.fechaFin].filter(Boolean).join(' – ')
+          const degree = [edu.titulo, edu.campo].filter(Boolean).join(', ')
+          return (
+            <View key={edu.id} style={s.entrySmall} wrap={false}>
+              {idx === 0 && <SectionHeader title={L.education} />}
+              <View style={s.rowSpaced}>
+                <Text style={s.company}>{edu.institucion || ''}</Text>
+                {period ? <Text style={s.period}>{period}</Text> : null}
+              </View>
+              {degree ? <Text style={s.degreeText}>{degree}</Text> : null}
+              {edu.logros.filter(Boolean).map((l, i) => (
+                <View key={i} style={s.bulletRow}>
+                  <Text style={s.bulletDot}>•</Text>
+                  <Text style={s.bulletText}>{l}</Text>
+                </View>
+              ))}
+            </View>
+          )
+        })}
+
+        {/* ── Languages spoken ── */}
         {idiomas.length > 0 && (
-          <View>
+          <View wrap={false}>
             <SectionHeader title={L.languages} />
             <Text style={s.langText}>
               {idiomas.map(l => `${l.idioma}: ${l.nivel}`).join('  ·  ')}
