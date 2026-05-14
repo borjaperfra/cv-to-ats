@@ -1,6 +1,10 @@
 import type { CVData, SkillCategories } from '@/types/cv'
 import { CV_TEMPLATE_LABELS, type CvLang } from '@/lib/cv-labels'
 
+function stripMarkdown(text: string): string {
+  return text.replace(/\*\*(.+?)\*\*/g, '$1').replace(/\*(.+?)\*/g, '$1')
+}
+
 function SectionHeader({ title }: { title: string }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '8pt', marginTop: '16pt', marginBottom: '6pt' }}>
@@ -139,7 +143,7 @@ export default function HarvardTemplate({ data, lang = 'en', id = 'harvard-templ
                     {exp.bullets.filter(Boolean).map((b, i) => (
                       <li key={i} style={{ display: 'flex', gap: '6pt', fontSize: '10pt', lineHeight: '1.45', marginTop: '2pt' }}>
                         <span style={{ flexShrink: 0 }}>•</span>
-                        <span>{b}</span>
+                        <span>{stripMarkdown(b)}</span>
                       </li>
                     ))}
                   </ul>

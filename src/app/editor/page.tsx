@@ -988,15 +988,16 @@ export default function EditorPage() {
                     {exp.bullets.map((b, bi) => (
                       <div key={bi} className="flex gap-2 items-start">
                         <span className="mt-2.5 text-gray-300 text-xs flex-shrink-0">•</span>
-                        <input
-                          type="text" value={b}
+                        <textarea
+                          value={b}
+                          rows={2}
                           onChange={e => {
                             const bullets = [...exp.bullets]
                             bullets[bi] = e.target.value
                             updateExp(exp.id, { bullets })
                           }}
                           placeholder="Describe un logro concreto con métricas..."
-                          className="flex-1 font-sans text-sm rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal/30 transition-all"
+                          className="flex-1 font-sans text-sm rounded-lg border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal/30 transition-all resize-none"
                           style={{ borderColor: '#e5e7eb', color: '#1a2744' }}
                         />
                         <button onClick={() => {
@@ -1145,7 +1146,16 @@ export default function EditorPage() {
       {showPreview && (
         <div className="lg:hidden fixed inset-0 z-30 bg-black/50 overflow-auto p-4"
           onClick={() => setShowPreview(false)}>
-          <div onClick={e => e.stopPropagation()} className="max-w-full overflow-x-auto">
+          <div onClick={e => e.stopPropagation()} className="max-w-full overflow-x-auto relative">
+            <button
+              onClick={() => setShowPreview(false)}
+              className="sticky top-0 left-full flex items-center justify-center w-9 h-9 rounded-full bg-white shadow-md text-gray-500 hover:text-gray-800 transition-colors z-10 mb-2 ml-auto"
+              aria-label="Cerrar vista previa"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
             <HarvardTemplate data={translatedCv[cvLang] ?? cv} lang={cvLang} />
           </div>
         </div>

@@ -4,6 +4,7 @@ import { CV_TEMPLATE_LABELS, type CvLang } from '@/lib/cv-labels'
 
 const pt = (mm: number) => mm * 2.835
 const toHref = (url: string) => /^https?:\/\//.test(url) ? url : `https://${url}`
+const stripMarkdown = (t: string) => t.replace(/\*\*(.+?)\*\*/g, '$1').replace(/\*(.+?)\*/g, '$1')
 
 const C = {
   text:     '#333333',
@@ -176,7 +177,7 @@ export default function HarvardTemplatePdf({ data, lang = 'en' }: { data: CVData
               {exp.bullets.filter(Boolean).map((b, i) => (
                 <View key={i} style={s.bulletRow}>
                   <Text style={s.bulletDot}>•</Text>
-                  <Text style={s.bulletText}>{b}</Text>
+                  <Text style={s.bulletText}>{stripMarkdown(b)}</Text>
                 </View>
               ))}
             </View>
