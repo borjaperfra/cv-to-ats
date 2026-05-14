@@ -56,7 +56,7 @@ Evaluate these 6 categories using the scoring criteria below. For each, produce:
 
 Scoring criteria:
 
-1. Keywords & skills — count each unique, explicitly named technology, programming language, framework, library, database, cloud platform, DevOps/MLOps tool, named methodology (e.g. Scrum, Kanban), or professional certification. Each item counts once regardless of how often it appears. Do NOT count generic soft skills ("communication", "leadership"), job titles, industry names, or vague phrases ("web technologies", "cloud experience"). STRICT: if doubtful whether something qualifies, do NOT count it. A CV that only mentions 3–4 specific tools must score 35–54, not higher.
+1. Keywords & skills — count each unique, explicitly named technology, programming language, framework, library, database, cloud platform, DevOps/MLOps tool, named methodology (e.g. Scrum, Kanban), or professional certification. Each item counts once regardless of how often it appears. Do NOT count: generic soft skills ("communication", "leadership"), job titles, industry names, vague phrases ("web technologies", "cloud experience"), or generic office tools ("Microsoft Office", "Excel", "Word", "PowerPoint", "Google Suite", "Google Docs"). Do NOT count "agile" or "scrum" unless they appear as a named practice in a specific project context or certification — a bare mention of "metodología ágil" does not count. STRICT: if doubtful whether something qualifies, do NOT count it. A CV that only mentions 3–4 specific tools must score 35–54, not higher.
    - 85–100: 15+ distinct items | 70–84: 10–14 | 55–69: 6–9 | 35–54: 3–5 | <35: 0–2
 
 2. Format & parseability — start at 75. Apply deductions only for confirmed, unambiguous issues. When in doubt, do NOT deduct.
@@ -66,8 +66,15 @@ Scoring criteria:
    - Non-standard decorative characters used as the sole bullet style (★, ⬛, custom glyphs — not "•" or "-"): −10
    If none of the above apply, score exactly 75. Do not invent penalties.
 
-3. Work experience structure — for each role, check four binary elements: company name present? Job title present? Start date present? End date or "present" present? Description (at least one line) present? Count total omissions across all roles. NOTE: overlapping date ranges across roles are valid and expected (e.g. a freelance or autonomous role running in parallel with a full-time position) — do not treat them as omissions or errors.
-   - 85–100: 0 omissions | 70–84: 1–2 omissions | 50–69: 3–5 omissions | <50: 6+ omissions
+3. Work experience — evaluate TWO aspects together:
+   A) Structure per role: company name present? Job title present? Start date present? End date or "present" present? At least one description line present? Count total omissions across all roles. NOTE: overlapping date ranges across roles are valid and expected (e.g. a freelance or autonomous role running in parallel with a full-time position) — do not treat them as omissions or errors.
+   B) Bullet quality: do descriptions include specific numbers, percentages, team sizes, project scope, revenue/cost figures, or measurable outcomes? OR are they purely vague ("responsible for", "in charge of", "helped with", "worked on", "supported", "participated in", "collaborated on")?
+
+   Score combining both aspects:
+   - 85–100: 0 structural omissions AND the majority of bullets contain specific metrics or measurable outcomes
+   - 70–84: 0–2 omissions AND some concrete details are present in the descriptions
+   - 50–69: 3–5 omissions OR all/most bullets are vague with no measurable outcomes
+   - <50: 6+ omissions OR descriptions are absent or consist entirely of vague phrases with no substance
 
 4. Education & certifications — institution name + degree/qualification + year = complete entry.
    - 85–100: ≥1 complete entry + certifications if listed | 65–84: complete entry, no certs | 50–64: partial entries | <50: sparse or absent
@@ -101,7 +108,7 @@ Score strictly. Most real-world CVs should score between 40–70. Reserve 80+ fo
 
 Concrete anchors — apply these directly:
 - Keywords: a CV with only 3–4 named tools must score 35–54. A CV with no dedicated skills section and only incidental tool mentions must score <35. Do not inflate.
-- Experience: vague bullets like "responsible for X" or "worked on Y" with no metrics or outcomes → score 50–69 max. Only score 85+ if bullets contain specific numbers, scope, and impact.
+- Experience: a role that has all structural fields present (company, title, dates, description) but all bullets are vague ("responsible for", "worked on", "participated in") → score 50–69, never higher. Only score 70+ if at least some bullets include concrete details. Only score 85+ if the majority of bullets contain specific numbers, scope, and measurable impact.
 - Education: no certifications and education section has only institution + degree but no year → score 50–64, not higher.
 - Contact: missing phone OR missing location → deduct the corresponding 25 pts. Do not assume fields are present.
 

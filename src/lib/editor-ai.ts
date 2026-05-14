@@ -89,6 +89,7 @@ Return exactly this structure:
 
 Additional rules:
 - Order experience from most recent to oldest.
+- CRITICAL: universities, colleges, schools, bootcamps, or any academic institution belong ONLY in "educacion". NEVER place them in "experiencia", even if they appear chronologically alongside jobs.
 - Skills categorization: assign each skill to exactly one category (languages=programming languages, frameworks=libraries/runtimes, databases=data stores, tools=DevOps/cloud/build, practices=methodologies). Never put all skills in one category.
 - CRITICAL: preserve ALL characters as they appear — accented letters (á, é, í, ó, ú, ñ, ç, etc.) must be output as real Unicode, not escape sequences.
 

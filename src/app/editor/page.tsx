@@ -453,80 +453,28 @@ export default function EditorPage() {
     const cvToExport = translatedCv[cvLang] ?? cv
     const nombre = cvToExport.personalInfo.nombre || 'cv'
     try {
-      const element = document.getElementById('harvard-template')
-      if (!element) throw new Error('No se encontró el elemento del CV.')
-
-      const html2canvas = (await import('html2canvas')).default
-      const { jsPDF } = await import('jspdf')
-
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#ffffff',
+      const res = await fetch('/api/editor/pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cvData: cvToExport,
+          lang: cvLang,
+          filename: nombre.replace(/\s+/g, '_').toLowerCase(),
+        }),
       })
-
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
-      const pageWidthMm  = pdf.internal.pageSize.getWidth()
-      const pageHeightMm = pdf.internal.pageSize.getHeight()
-      const marginMm = 6 // breathing room at top/bottom of each page
-      const pxPerMm = canvas.width / pageWidthMm
-      const pageHeightPx = pageHeightMm * pxPerMm
-      const contentHeightPx = (pageHeightMm - marginMm * 2) * pxPerMm
-
-      // Find a nearly-white row near targetY to use as natural page break
-      const findBreakY = (nearY: number): number => {
-        const ctx = canvas.getContext('2d')
-        if (!ctx) return nearY
-        const searchPx = Math.round(40 * pxPerMm) // search up to 40mm above the target
-        const from = Math.max(0, Math.round(nearY - searchPx))
-        const to   = Math.min(canvas.height, Math.round(nearY))
-        const step = Math.max(1, Math.floor(canvas.width / 30)) // sample 30 columns
-        for (let y = to; y >= from; y--) {
-          const row = ctx.getImageData(0, y, canvas.width, 1).data
-          let dark = 0
-          for (let x = 0; x < canvas.width; x += step) {
-            const i = x * 4
-            if (row[i] < 235 || row[i + 1] < 235 || row[i + 2] < 235) dark++
-          }
-          if (dark === 0) return y
-        }
-        return from // fallback: cut at the earliest safe point
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string }
+        throw new Error(err.error || 'Error al generar el PDF.')
       }
-
-      let srcY = 0
-      let firstPage = true
-      while (srcY < canvas.height) {
-        if (!firstPage) pdf.addPage()
-        firstPage = false
-
-        const naturalEnd = srcY + contentHeightPx
-        const breakY = naturalEnd < canvas.height
-          ? findBreakY(naturalEnd)
-          : canvas.height
-
-        const sliceHeightPx = breakY - srcY
-        const sliceHeightMm = sliceHeightPx / pxPerMm
-
-        // Paint the slice onto a page-sized canvas with margin padding
-        const pageCanvas = document.createElement('canvas')
-        pageCanvas.width  = canvas.width
-        pageCanvas.height = Math.round(pageHeightPx)
-        const pCtx = pageCanvas.getContext('2d')!
-        pCtx.fillStyle = '#ffffff'
-        pCtx.fillRect(0, 0, pageCanvas.width, pageCanvas.height)
-        pCtx.drawImage(canvas, 0, srcY, canvas.width, sliceHeightPx,
-                               0, Math.round(marginMm * pxPerMm), canvas.width, sliceHeightPx)
-
-        pdf.addImage(pageCanvas.toDataURL('image/jpeg', 0.92), 'JPEG',
-                     0, 0, pageWidthMm, pageHeightMm)
-
-        // Next page starts with a small overlap back so we don't skip content
-        srcY = srcY + sliceHeightPx
-        void sliceHeightMm
-      }
-
-      const safeFilename = nombre.replace(/\s+/g, '_').toLowerCase()
-      pdf.save(`${safeFilename}_cv.pdf`)
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${nombre.replace(/\s+/g, '_').toLowerCase()}_cv.pdf`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Error al generar el PDF.'
       setLoadError(msg)

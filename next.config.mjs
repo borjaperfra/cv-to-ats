@@ -10,15 +10,14 @@ const nextConfig = {
       '/api/match': ['./node_modules/pdf-parse/**'],
       '/api/anonymize': ['./node_modules/pdf-parse/**'],
       '/api/cv-preview': ['./node_modules/pdf-parse/**'],
-      '/api/editor/pdf': ['./node_modules/puppeteer-core/**', './node_modules/@sparticuz/chromium/**'],
+      '/api/editor/pdf': ['./node_modules/@react-pdf/renderer/**'],
     },
   },
 
   webpack: (config, { isServer }) => {
     if (isServer) {
       config.externals.push({ 'pdf-parse': 'commonjs pdf-parse' })
-      config.externals.push({ 'puppeteer-core': 'commonjs puppeteer-core' })
-      config.externals.push({ '@sparticuz/chromium': 'commonjs @sparticuz/chromium' })
+      config.externals.push({ '@react-pdf/renderer': 'commonjs @react-pdf/renderer' })
     }
     return config
   },
