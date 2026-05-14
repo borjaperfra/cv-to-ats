@@ -1,7 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { renderToStaticMarkup } from 'react-dom/server'
-import { createElement } from 'react'
-import HarvardTemplate from '@/components/editor/HarvardTemplate'
 import type { CVData } from '@/types/cv'
 import type { CvLang } from '@/lib/cv-labels'
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
@@ -13,7 +10,10 @@ export const maxDuration = 60
 
 const CHROMIUM_PATH = process.env.CHROMIUM_PATH ?? '/usr/bin/chromium-browser'
 
-function buildHtml(cvData: CVData, lang: CvLang): string {
+async function buildHtml(cvData: CVData, lang: CvLang): Promise<string> {
+  const { renderToStaticMarkup } = await import('react-dom/server')
+  const { createElement } = await import('react')
+  const { default: HarvardTemplate } = await import('@/components/editor/HarvardTemplate')
   const body = renderToStaticMarkup(createElement(HarvardTemplate, { data: cvData, lang }))
   return `<!DOCTYPE html>
 <html>
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Faltan datos del CV.' }, { status: 400 })
     }
 
-    const html = buildHtml(cvData, lang)
+    const html = await buildHtml(cvData, lang)
 
     tmpDir = mkdtempSync(join('/tmp', 'chromium-'))
 
