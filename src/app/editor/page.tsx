@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect, useMemo } from 'react'
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import dynamic from 'next/dynamic'
 import type { CVData, ExperienciaEntry, EducacionEntry, IdiomaEntry, ProyectoEntry, SkillCategories } from '@/types/cv'
 import type { ATSAnalysisResult, Suggestion } from '@/types/analysis'
@@ -582,6 +582,20 @@ export default function EditorPage() {
 
   const liveAtsScore = useMemo(() => calcAtsScore(cv), [cv])
 
+  const prevScoreRef = useRef(liveAtsScore.score)
+  const [scoreDelta, setScoreDelta] = useState(0)
+  const [justChanged, setJustChanged] = useState(false)
+
+  useEffect(() => {
+    if (liveAtsScore.score !== prevScoreRef.current) {
+      setScoreDelta(liveAtsScore.score - prevScoreRef.current)
+      setJustChanged(true)
+      prevScoreRef.current = liveAtsScore.score
+      const t = setTimeout(() => { setJustChanged(false); setScoreDelta(0) }, 2200)
+      return () => clearTimeout(t)
+    }
+  }, [liveAtsScore.score])
+
   return (
     <div className="flex flex-col h-screen overflow-hidden" style={{ backgroundColor: '#f0ede8' }}>
 
@@ -596,17 +610,28 @@ export default function EditorPage() {
             </h1>
             {/* Live ATS score chip */}
             <div
+              key={liveAtsScore.score}
               title="Estimación ATS en tiempo real (client-side)"
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+              className={`flex flex-col items-center justify-center px-3 py-1.5 rounded-xl transition-colors duration-300${justChanged ? ' score-flash' : ''}`}
               style={{
-                backgroundColor: liveAtsScore.level === 'high' ? 'rgba(13,161,164,0.2)' : liveAtsScore.level === 'mid' ? 'rgba(245,158,11,0.2)' : 'rgba(239,68,68,0.15)',
-                border: `1px solid ${liveAtsScore.level === 'high' ? 'rgba(13,161,164,0.4)' : liveAtsScore.level === 'mid' ? 'rgba(245,158,11,0.4)' : 'rgba(239,68,68,0.3)'}`,
+                backgroundColor: liveAtsScore.level === 'high' ? 'rgba(1,255,198,0.12)' : liveAtsScore.level === 'mid' ? 'rgba(245,158,11,0.15)' : 'rgba(239,68,68,0.12)',
+                border: `1.5px solid ${liveAtsScore.level === 'high' ? 'rgba(1,255,198,0.35)' : liveAtsScore.level === 'mid' ? 'rgba(245,158,11,0.4)' : 'rgba(239,68,68,0.35)'}`,
+                minWidth: 52,
               }}
             >
-              <span className="font-sans font-[900] text-xs leading-none" style={{ color: liveAtsScore.level === 'high' ? '#01FFC6' : liveAtsScore.level === 'mid' ? '#fbbf24' : '#f87171' }}>
-                {liveAtsScore.score}
+              <div className="flex items-baseline gap-1">
+                <span className="font-display font-[900] leading-none" style={{ fontSize: 22, color: liveAtsScore.level === 'high' ? '#01FFC6' : liveAtsScore.level === 'mid' ? '#fbbf24' : '#f87171' }}>
+                  {liveAtsScore.score}
+                </span>
+                {justChanged && scoreDelta !== 0 && (
+                  <span className="font-sans font-[800] text-[10px] leading-none" style={{ color: scoreDelta > 0 ? '#01FFC6' : '#f87171' }}>
+                    {scoreDelta > 0 ? `+${scoreDelta}` : scoreDelta}
+                  </span>
+                )}
+              </div>
+              <span className="font-sans font-[700] text-[9px] uppercase tracking-widest leading-none mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                ATS
               </span>
-              <span className="font-sans text-[10px]" style={{ color: 'rgba(255,255,255,0.45)' }}>ATS</span>
             </div>
           </div>
           <p className="font-sans text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
