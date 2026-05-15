@@ -35,11 +35,11 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'ATSKiller — Manfred',
     description: 'Analiza tu CV. Prepáralo para los ATS. Descubre qué ven los reclutadores antes de que llegues a la primera entrevista.',
-    url: '/',
+    url: BASE_URL,
     siteName: 'ATSKiller by Manfred',
     images: [
       {
-        url: '/api/og',
+        url: `${BASE_URL}/api/og`,
         width: 1200,
         height: 630,
         alt: 'ATSKiller — Analiza tu CV y prepáralo para los ATS',
@@ -50,9 +50,11 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
+    site: '@borjaperfra',
+    creator: '@borjaperfra',
     title: 'ATSKiller — Manfred',
     description: 'Analiza tu CV. Prepáralo para los ATS.',
-    images: ['/api/og'],
+    images: [`${BASE_URL}/api/og`],
   },
 }
 

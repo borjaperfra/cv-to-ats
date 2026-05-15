@@ -85,19 +85,15 @@ const sections = [
         <p>Para ofrecer el análisis del CV, esta herramienta utiliza los siguientes servicios de terceros:</p>
         <div className="mt-3 space-y-3">
           <div className="rounded-xl border border-gray-100 p-4">
-            <p className="font-sans font-[700] text-sm" style={{ color: '#092c64' }}>NaN API</p>
+            <p className="font-sans font-[700] text-sm" style={{ color: '#092c64' }}>NaN API — Gemma 4</p>
             <p className="font-sans text-xs text-gray-400 mt-1">
-              Procesamiento de IA para el análisis del CV.
+              Modelo de inteligencia artificial (Gemma 4) utilizado para el análisis del CV.
             </p>
           </div>
           <div className="rounded-xl border border-gray-100 p-4">
-            <p className="font-sans font-[700] text-sm" style={{ color: '#092c64' }}>Railway</p>
+            <p className="font-sans font-[700] text-sm" style={{ color: '#092c64' }}>Helmcode</p>
             <p className="font-sans text-xs text-gray-400 mt-1">
-              Infraestructura de despliegue. Consulta la{' '}
-              <a href="https://railway.com/legal/privacy" target="_blank" rel="noopener noreferrer"
-                className="underline hover:opacity-70 transition-opacity" style={{ color: '#0DA1A4' }}>
-                política de privacidad de Railway
-              </a>.
+              Infraestructura de despliegue (Kubernetes + Cloudflare).
             </p>
           </div>
         </div>
@@ -185,7 +181,7 @@ export default function PrivacidadPage() {
             Política de Privacidad
           </h1>
           <p className="font-sans text-xs text-gray-400 mt-2">
-            Última actualización: 12 de mayo de 2026
+            Última actualización: 15 de mayo de 2026
           </p>
         </div>
 

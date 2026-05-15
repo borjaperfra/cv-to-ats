@@ -11,7 +11,7 @@ const BARS = [
 ]
 
 export async function GET() {
-  return new ImageResponse(
+  const image = new ImageResponse(
     (
       <div
         style={{
@@ -191,4 +191,6 @@ export async function GET() {
     ),
     { width: 1200, height: 630 }
   )
+  image.headers.set('Cache-Control', 'public, max-age=86400, s-maxage=86400')
+  return image
 }
