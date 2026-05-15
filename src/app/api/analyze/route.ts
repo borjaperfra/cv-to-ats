@@ -164,7 +164,7 @@ export async function POST(request: NextRequest) {
         .select('value')
         .eq('id', 'cvs_analyzed')
         .single()
-      if (data && Number(data.value) === 10000) milestone = true
+      if (data && Number(data.value) === 11000) milestone = true
     } catch {}
 
     return NextResponse.json({ ...result, _cvText: cvText, milestone })

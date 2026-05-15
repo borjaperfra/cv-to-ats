@@ -79,7 +79,7 @@ export default function ResultsPage() {
     <div className="min-h-screen bg-bg-light">
       <ScrollToTop />
 
-      {/* Milestone 10.000 popup */}
+      {/* Milestone 11.000 popup */}
       {showMilestone && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 no-print" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
           <div className="relative w-full max-w-lg rounded-2xl bg-white shadow-2xl overflow-hidden">
@@ -97,15 +97,15 @@ export default function ResultsPage() {
             {/* Header strip */}
             <div className="px-8 pt-8 pb-4" style={{ background: 'linear-gradient(135deg, #092c64 0%, #0DA1A4 100%)' }}>
               <div className="text-center">
-                <div className="font-sans font-black text-6xl" style={{ color: '#01FFC6', fontVariantNumeric: 'tabular-nums' }}>10.000</div>
-                <div className="font-sans font-bold text-white text-xl mt-1">Eres el/la numero 10.000</div>
+                <div className="font-sans font-black text-6xl" style={{ color: '#01FFC6', fontVariantNumeric: 'tabular-nums' }}>11.000</div>
+                <div className="font-sans font-bold text-white text-xl mt-1">Eres el/la numero 11.000</div>
               </div>
             </div>
 
             {/* Body */}
             <div className="px-8 py-6">
               <p className="font-sans text-gray-700 text-sm leading-relaxed">
-                <strong>Enhorabuena!</strong> Eres la persona numero 10.000 en analizar su CV con ATS Killer.
+                <strong>Enhorabuena!</strong> Eres la persona numero 11.000 en analizar su CV con ATS Killer.
               </p>
               <p className="font-sans text-gray-700 text-sm leading-relaxed mt-3">
                 Te llevarias un coche y un apartamento en Torrevieja, pero la han conquistado los guiris y no nos da el presupuesto.
@@ -113,7 +113,7 @@ export default function ResultsPage() {
               <p className="font-sans text-gray-700 text-sm leading-relaxed mt-3">
                 Pero si me escribes a{' '}
                 <span className="font-semibold" style={{ color: '#092c64' }}>borja.perez@getmanfred.com</span>{' '}
-                te mandamos un pack de merchandising chulo de Manfred y algún regalillo más.
+                con el codigo <span className="font-mono font-bold" style={{ color: '#0DA1A4' }}>B7XQ2M</span> te mandamos un pack de merchandising chulo de Manfred y algún regalillo más.
               </p>
               <p className="font-sans text-sm leading-relaxed mt-3 font-medium" style={{ color: '#0DA1A4' }}>
                 P.D. Si lo publicas en Tw y me etiquetas @borjaperfra vas a ser la envidia de todo el mundo ^__^ Gracias por usar la herramienta.
