@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { headers } from 'next/headers'
 import { Source_Serif_4, Big_Shoulders_Display, Montserrat } from 'next/font/google'
 import dynamic from 'next/dynamic'
 import './globals.css'
@@ -26,36 +27,44 @@ const montserrat = Montserrat({
   display: 'swap',
 })
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://cv-to-ats-production.up.railway.app'
+function getBaseUrl(): string {
+  const headersList = headers()
+  const host = headersList.get('x-forwarded-host') ?? headersList.get('host') ?? 'localhost:3000'
+  const proto = headersList.get('x-forwarded-proto') ?? 'https'
+  return `${proto}://${host}`
+}
 
-export const metadata: Metadata = {
-  metadataBase: new URL(BASE_URL),
-  title: 'ATSKiller — Manfred',
-  description: 'Analiza tu CV y descubre si está optimizado para los sistemas ATS de selección de personal. Feedback concreto, puntuación por categorías y recomendaciones accionables.',
-  openGraph: {
+export async function generateMetadata(): Promise<Metadata> {
+  const BASE_URL = getBaseUrl()
+  return {
+    metadataBase: new URL(BASE_URL),
     title: 'ATSKiller — Manfred',
-    description: 'Analiza tu CV. Prepáralo para los ATS. Descubre qué ven los reclutadores antes de que llegues a la primera entrevista.',
-    url: BASE_URL,
-    siteName: 'ATSKiller by Manfred',
-    images: [
-      {
-        url: `${BASE_URL}/api/og`,
-        width: 1200,
-        height: 630,
-        alt: 'ATSKiller — Analiza tu CV y prepáralo para los ATS',
-      },
-    ],
-    locale: 'es_ES',
-    type: 'website',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    site: '@borjaperfra',
-    creator: '@borjaperfra',
-    title: 'ATSKiller — Manfred',
-    description: 'Analiza tu CV. Prepáralo para los ATS.',
-    images: [`${BASE_URL}/api/og`],
-  },
+    description: 'Analiza tu CV y descubre si está optimizado para los sistemas ATS de selección de personal. Feedback concreto, puntuación por categorías y recomendaciones accionables.',
+    openGraph: {
+      title: 'ATSKiller — Manfred',
+      description: 'Analiza tu CV. Prepáralo para los ATS. Descubre qué ven los reclutadores antes de que llegues a la primera entrevista.',
+      url: BASE_URL,
+      siteName: 'ATSKiller by Manfred',
+      images: [
+        {
+          url: `${BASE_URL}/api/og`,
+          width: 1200,
+          height: 630,
+          alt: 'ATSKiller — Analiza tu CV y prepáralo para los ATS',
+        },
+      ],
+      locale: 'es_ES',
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      site: '@borjaperfra',
+      creator: '@borjaperfra',
+      title: 'ATSKiller — Manfred',
+      description: 'Analiza tu CV. Prepáralo para los ATS.',
+      images: [`${BASE_URL}/api/og`],
+    },
+  }
 }
 
 function Footer() {
