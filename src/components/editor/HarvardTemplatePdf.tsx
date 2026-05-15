@@ -58,7 +58,7 @@ const s = StyleSheet.create({
   // ── Entries ──────────────────────────────────────────────
   entry:      { marginBottom: pt(4) },
   entrySmall: { marginBottom: pt(3) },
-  rowSpaced:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
+  rowSpaced:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
 
   // ── Experience ───────────────────────────────────────────
   company:   { fontFamily: 'Helvetica-Bold', fontSize: 10, color: C.darktext },
@@ -72,7 +72,7 @@ const s = StyleSheet.create({
   bulletText: { flex: 1, fontSize: 9 },
 
   // ── Projects ─────────────────────────────────────────────
-  projUrl:  { fontSize: 7.5, color: C.light, flexShrink: 0, marginLeft: pt(4) },
+  projUrl:  { fontSize: 7.5, color: C.light, flexShrink: 0, marginLeft: pt(4), textDecoration: 'none' },
   projDesc: { fontSize: 9, marginTop: 2 },
 
   // ── Education ────────────────────────────────────────────
@@ -139,7 +139,7 @@ export default function HarvardTemplatePdf({ data, lang = 'en' }: { data: CVData
                   ? [<Text key={`sep-${idx}`} style={s.contact}>{'  |  '}</Text>]
                   : []
                 const el = href
-                  ? <Link key={idx} src={href} style={s.contactLink}>{part}</Link>
+                  ? <Link key={idx} href={href} style={s.contactLink} hitSlop={4}>{part}</Link>
                   : <Text key={idx} style={s.contact}>{part}</Text>
                 return [el, ...sep]
               })}
@@ -198,7 +198,7 @@ export default function HarvardTemplatePdf({ data, lang = 'en' }: { data: CVData
             {idx === 0 && <SectionHeader title={L.projects} />}
             <View style={s.rowSpaced}>
               <Text style={s.company}>{proj.nombre}</Text>
-              {proj.url ? <Link src={toHref(proj.url)} style={[s.projUrl, { textDecoration: 'none' }]}>{proj.url}</Link> : null}
+              {proj.url ? <Link href={toHref(proj.url)} style={s.projUrl} hitSlop={4}>{proj.url}</Link> : null}
             </View>
             {proj.descripcion ? <Text style={s.projDesc}>{proj.descripcion}</Text> : null}
           </View>
