@@ -3,14 +3,15 @@ import type { CVData, SkillCategories } from '@/types/cv'
 import { CV_TEMPLATE_LABELS, type CvLang } from '@/lib/cv-labels'
 
 const pt = (mm: number) => mm * 2.835
+const isUrlLike = (url: string) => !/\s/.test(url)
 const toHref = (url: string) => /^https?:\/\//.test(url) ? url : `https://${url}`
 const stripMarkdown = (t: string) => t.replace(/\*\*(.+?)\*\*/g, '$1').replace(/\*(.+?)\*/g, '$1')
 
 function contactHref(value: string, p: { email?: string; telefono?: string; linkedin?: string; website?: string }): string | null {
   if (value === p.email && value) return `mailto:${value}`
   if (value === p.telefono && value) return `tel:${value.replace(/\s+/g, '')}`
-  if (value === p.linkedin && value) return toHref(value)
-  if (value === p.website && value) return toHref(value)
+  if (value === p.linkedin && value) return isUrlLike(value) ? toHref(value) : null
+  if (value === p.website && value) return isUrlLike(value) ? toHref(value) : null
   return null
 }
 
@@ -198,7 +199,7 @@ export default function HarvardTemplatePdf({ data, lang = 'en' }: { data: CVData
             {idx === 0 && <SectionHeader title={L.projects} />}
             <View style={s.rowSpaced}>
               <Text style={s.company}>{proj.nombre}</Text>
-              {proj.url ? <Link href={toHref(proj.url)} style={s.projUrl} hitSlop={4}>{proj.url}</Link> : null}
+              {proj.url && isUrlLike(proj.url) ? <Link href={toHref(proj.url)} style={s.projUrl} hitSlop={4}>{proj.url}</Link> : null}
             </View>
             {proj.descripcion ? <Text style={s.projDesc}>{proj.descripcion}</Text> : null}
           </View>

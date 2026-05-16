@@ -211,6 +211,8 @@ export default function EditorPage() {
   const [loadingRecs, setLoadingRecs] = useState(false)
   const [loadError, setLoadError] = useState('')
   const [changesApplied, setChangesApplied] = useState<number | null>(null)
+  const [baselineScore, setBaselineScore] = useState<number | null>(null)
+  const [gainVsBaseline, setGainVsBaseline] = useState<number | null>(null)
 
 
   useEffect(() => {
@@ -245,6 +247,13 @@ export default function EditorPage() {
       }
     }
   }, [])
+
+  // Capture baseline score from analysis result (shown in chip before CV is loaded)
+  useEffect(() => {
+    if (detectedResult?.overallScore != null && baselineScore === null) {
+      setBaselineScore(detectedResult.overallScore)
+    }
+  }, [detectedResult, baselineScore])
 
   // Sync lang when user changes it from the header selector
   useEffect(() => {
@@ -293,10 +302,14 @@ export default function EditorPage() {
       clearTimeout(tid)
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Error al cargar el CV.')
-      setCv(data as CVData)
+      const loadedCv = data as CVData
+      const newScore = calcAtsScore(loadedCv)
+      prevScoreRef.current = newScore.score
+      setCv(loadedCv)
       setCvLoaded(true)
       setDetectedCvText(null)
       sessionStorage.removeItem('atsCvText')
+      if (baselineScore !== null) setGainVsBaseline(newScore.score - baselineScore)
     } catch (err) {
       const isAbort = err instanceof Error && (err.name === 'AbortError' || err.message.includes('aborted'))
       setLoadError(isAbort
@@ -329,9 +342,12 @@ export default function EditorPage() {
         if (!newExp) return sum
         return sum + exp.bullets.filter((b, bi) => b !== (newExp.bullets[bi] ?? '')).length
       }, 0)
+      const newScore = calcAtsScore(data)
+      prevScoreRef.current = newScore.score
       setChangesApplied(bulletChanges)
       setCv(data)
       setDetectedResult(null)
+      if (baselineScore !== null) setGainVsBaseline(newScore.score - baselineScore)
     } catch (err) {
       const isAbort = err instanceof Error && (err.name === 'AbortError' || err.message.includes('aborted'))
       setLoadError(isAbort
@@ -485,6 +501,12 @@ export default function EditorPage() {
 
   const liveAtsScore = useMemo(() => calcAtsScore(cv), [cv])
 
+  // Before CV is loaded: show the real analysis score. After: show live simulator score.
+  const scoreToShow = !cvLoaded && baselineScore != null ? baselineScore : liveAtsScore.score
+  const levelToShow: 'high' | 'mid' | 'low' = !cvLoaded && baselineScore != null
+    ? (baselineScore >= 75 ? 'high' : baselineScore >= 50 ? 'mid' : 'low')
+    : liveAtsScore.level
+
   const prevScoreRef = useRef(liveAtsScore.score)
   const [scoreDelta, setScoreDelta] = useState(0)
   const [justChanged, setJustChanged] = useState(false)
@@ -498,6 +520,11 @@ export default function EditorPage() {
       return () => clearTimeout(t)
     }
   }, [liveAtsScore.score])
+
+  // Transient delta (from editing) takes priority; then persistent delta vs analysis baseline
+  const deltaToShow = cvLoaded
+    ? (justChanged && scoreDelta !== 0 ? scoreDelta : (gainVsBaseline != null && gainVsBaseline !== 0 ? gainVsBaseline : null))
+    : null
 
   return (
     <div className="flex flex-col h-screen overflow-hidden" style={{ backgroundColor: '#f0ede8' }}>
@@ -513,22 +540,22 @@ export default function EditorPage() {
             </h1>
             {/* Live ATS score chip */}
             <div
-              key={liveAtsScore.score}
-              title="Estimación ATS en tiempo real (client-side)"
-              className={`flex flex-col items-center justify-center px-3 py-1.5 rounded-xl transition-colors duration-300${justChanged ? ' score-flash' : ''}`}
+              key={scoreToShow}
+              title={!cvLoaded && baselineScore != null ? 'Puntuación real del análisis ATS' : 'Estimación ATS en tiempo real'}
+              className={`flex flex-col items-center justify-center px-3 py-1.5 rounded-xl transition-colors duration-300${justChanged && cvLoaded ? ' score-flash' : ''}`}
               style={{
-                backgroundColor: liveAtsScore.level === 'high' ? 'rgba(1,255,198,0.12)' : liveAtsScore.level === 'mid' ? 'rgba(245,158,11,0.15)' : 'rgba(239,68,68,0.12)',
-                border: `1.5px solid ${liveAtsScore.level === 'high' ? 'rgba(1,255,198,0.35)' : liveAtsScore.level === 'mid' ? 'rgba(245,158,11,0.4)' : 'rgba(239,68,68,0.35)'}`,
+                backgroundColor: levelToShow === 'high' ? 'rgba(1,255,198,0.12)' : levelToShow === 'mid' ? 'rgba(245,158,11,0.15)' : 'rgba(239,68,68,0.12)',
+                border: `1.5px solid ${levelToShow === 'high' ? 'rgba(1,255,198,0.35)' : levelToShow === 'mid' ? 'rgba(245,158,11,0.4)' : 'rgba(239,68,68,0.35)'}`,
                 minWidth: 52,
               }}
             >
               <div className="flex items-baseline gap-1">
-                <span className="font-display font-[900] leading-none" style={{ fontSize: 22, color: liveAtsScore.level === 'high' ? '#01FFC6' : liveAtsScore.level === 'mid' ? '#fbbf24' : '#f87171' }}>
-                  {liveAtsScore.score}
+                <span className="font-display font-[900] leading-none" style={{ fontSize: 22, color: levelToShow === 'high' ? '#01FFC6' : levelToShow === 'mid' ? '#fbbf24' : '#f87171' }}>
+                  {scoreToShow}
                 </span>
-                {justChanged && scoreDelta !== 0 && (
-                  <span className="font-sans font-[800] text-[10px] leading-none" style={{ color: scoreDelta > 0 ? '#01FFC6' : '#f87171' }}>
-                    {scoreDelta > 0 ? `+${scoreDelta}` : scoreDelta}
+                {deltaToShow !== null && (
+                  <span className="font-sans font-[800] text-[10px] leading-none" style={{ color: deltaToShow > 0 ? '#01FFC6' : '#f87171' }}>
+                    {deltaToShow > 0 ? `+${deltaToShow}` : deltaToShow}
                   </span>
                 )}
               </div>

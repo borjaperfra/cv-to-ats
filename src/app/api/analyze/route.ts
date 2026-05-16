@@ -151,9 +151,11 @@ export async function POST(request: NextRequest) {
       /^\s*\d+\s*$/gm,
     ]
     const cleanedCvText = PLATFORM_PATTERNS.reduce((t, re) => t.replace(re, ''), cvText).trim()
+    // Strip extracted links block before ATS analysis — it's only needed by the editor parser
+    const cvTextForAnalysis = cleanedCvText.replace(/\n\[EXTRACTED_LINKS\][\s\S]*?\[\/EXTRACTED_LINKS\]/g, '').trim()
 
     const lang = (formData.get('lang') as string | null) === 'en' ? 'en' : 'es'
-    const result = await withTimeout(analyzeWithGemini(cleanedCvText, lang), ANALYSIS_TIMEOUT_MS)
+    const result = await withTimeout(analyzeWithGemini(cvTextForAnalysis, lang), ANALYSIS_TIMEOUT_MS)
     result.analyzedAt = new Date().toISOString()
 
     let milestone = false

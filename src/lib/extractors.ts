@@ -71,6 +71,19 @@ async function extractFromImagePDF(buffer: Buffer): Promise<string> {
   }
 }
 
+function extractLinksFromPdfBuffer(buffer: Buffer): string[] {
+  // Scan raw PDF binary for /URI annotations — pdf-parse discards these
+  const raw = buffer.toString('latin1')
+  const urls: string[] = []
+  const uriRegex = /\/URI\s*\(([^)]+)\)/g
+  let match
+  while ((match = uriRegex.exec(raw)) !== null) {
+    const url = match[1].replace(/\\\)/g, ')').trim()
+    if (/^https?:\/\//i.test(url)) urls.push(url)
+  }
+  return Array.from(new Set(urls))
+}
+
 export async function extractFromPDF(buffer: Buffer, maxPages?: number): Promise<string> {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const pdfParse = require('pdf-parse')
@@ -80,14 +93,24 @@ export async function extractFromPDF(buffer: Buffer, maxPages?: number): Promise
     throw new Error(`El CV no puede tener más de ${maxPages} páginas. El tuyo tiene ${data.numpages}.`)
   }
 
-  if (data.text.trim().length >= 30) return data.text
-
-  // Fallback: image-based PDF — extract embedded JPEGs and OCR via Gemma4
-  try {
-    return await extractFromImagePDF(buffer)
-  } catch {
-    throw new Error('No se pudo extraer texto de este PDF. Puede ser un escaneado o un diseño exportado como imagen (ej: Canva). Prueba a exportarlo de nuevo como PDF con texto, o sube una copia en DOCX o TXT.')
+  let text: string
+  if (data.text.trim().length >= 30) {
+    text = data.text
+  } else {
+    // Fallback: image-based PDF — extract embedded JPEGs and OCR via Gemma4
+    try {
+      text = await extractFromImagePDF(buffer)
+    } catch {
+      throw new Error('No se pudo extraer texto de este PDF. Puede ser un escaneado o un diseño exportado como imagen (ej: Canva). Prueba a exportarlo de nuevo como PDF con texto, o sube una copia en DOCX o TXT.')
+    }
   }
+
+  const links = extractLinksFromPdfBuffer(buffer)
+  if (links.length > 0) {
+    text += '\n\n[EXTRACTED_LINKS]\n' + links.join('\n') + '\n[/EXTRACTED_LINKS]'
+  }
+
+  return text
 }
 
 export async function extractFromDOCX(buffer: Buffer): Promise<string> {

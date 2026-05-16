@@ -47,9 +47,9 @@ Return exactly this structure:
     "cargo": "<current professional title or most recent role as written, or empty>",
     "email": "<email as written, or empty>",
     "telefono": "<phone as written, or empty>",
-    "linkedin": "<linkedin url or username as written, or empty>",
+    "linkedin": "<linkedin URL or path ONLY if it looks like a real URL or path (e.g. 'linkedin.com/in/user', '/in/user', 'https://...'). If the CV shows only a display label like 'LinkedIn - Name' with no URL pattern, use empty string>",
     "ubicacion": "<city, country as written, or empty>",
-    "website": "<personal website or portfolio url as written, or empty>"
+    "website": "<website URL ONLY if it is an actual domain or URL (e.g. 'juangarcia.dev', 'https://...'). If only a display text is present, use empty string>"
   },
   "resumen": "<summary or profile section verbatim, or empty string if not present>",
   "experiencia": [
@@ -67,7 +67,7 @@ Return exactly this structure:
     {
       "nombre": "<project name as written>",
       "descripcion": "<description as written>",
-      "url": "<url as written, or empty string>"
+      "url": "<project URL ONLY if it is an actual URL or domain (e.g. 'github.com/user/repo', 'https://...'). If only display text is present, use empty string>"
     }
   ],
   "educacion": [
@@ -97,6 +97,10 @@ Additional rules:
 - CRITICAL: universities, colleges, schools, bootcamps, or any academic institution belong ONLY in "educacion". NEVER place them in "experiencia", even if they appear chronologically alongside jobs.
 - Skills categorization: assign each skill to exactly one category (languages=programming languages, frameworks=libraries/runtimes, databases=data stores, tools=DevOps/cloud/build, practices=methodologies). Never put all skills in one category.
 - CRITICAL: preserve ALL characters as they appear — accented letters (á, é, í, ó, ú, ñ, ç, etc.) must be output as real Unicode, not escape sequences.
+- URL RESOLUTION: The CV text may end with an [EXTRACTED_LINKS] section listing actual hyperlink URLs found in the PDF (which pdf-parse discards). When filling linkedin, website, and project url fields:
+  1. Check [EXTRACTED_LINKS] first — use any linkedin.com URL for the linkedin field, any other domain URL for website, and match project URLs by proximity to project names.
+  2. If [EXTRACTED_LINKS] is absent or has no matching URL, fall back to URL-like text in the CV body.
+  3. NEVER include the [EXTRACTED_LINKS] block or its contents literally in any output field.
 
 CV TEXT:
 ---
@@ -124,7 +128,7 @@ CURRENT CV (JSON):
 ${JSON.stringify(cvData, null, 2)}
 
 ATS IMPROVEMENT RECOMMENDATIONS:
-${suggestions.map((s, i) => `${i + 1}. ${s.titulo}\n${s.pasos.map(p => `   - ${p.texto}`).join('\n')}`).join('\n\n')}
+${suggestions.map((s, i) => `${i + 1}. ${s.titulo}\n${s.pasos.map(p => `   - ${p.texto}`).join('\n')}${s.sugerencia ? `\n   EXAMPLE REWRITE: "${s.sugerencia}"` : ''}`).join('\n\n')}
 
 Return the improved CV as JSON with the exact same structure.
 `.trim()
