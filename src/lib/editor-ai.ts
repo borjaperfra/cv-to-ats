@@ -97,6 +97,10 @@ Additional rules:
 - CRITICAL: universities, colleges, schools, bootcamps, or any academic institution belong ONLY in "educacion". NEVER place them in "experiencia", even if they appear chronologically alongside jobs.
 - Skills categorization: assign each skill to exactly one category (languages=programming languages, frameworks=libraries/runtimes, databases=data stores, tools=DevOps/cloud/build, practices=methodologies). Never put all skills in one category.
 - CRITICAL: preserve ALL characters as they appear — accented letters (á, é, í, ó, ú, ñ, ç, etc.) must be output as real Unicode, not escape sequences.
+- URL RESOLUTION: The CV text may end with an [EXTRACTED_LINKS] section listing actual hyperlink URLs found in the PDF (which pdf-parse discards). When filling linkedin, website, and project url fields:
+  1. Check [EXTRACTED_LINKS] first — use any linkedin.com URL for the linkedin field, any other domain URL for website, and match project URLs by proximity to project names.
+  2. If [EXTRACTED_LINKS] is absent or has no matching URL, fall back to URL-like text in the CV body.
+  3. NEVER include the [EXTRACTED_LINKS] block or its contents literally in any output field.
 
 CV TEXT:
 ---
