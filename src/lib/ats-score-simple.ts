@@ -44,16 +44,16 @@ function estimatePages(cv: CVData): number {
 
 export function calcAtsScore(cv: CVData): SimpleAtsScore {
   // Keywords & skills (30%)
-  // Keywords & skills (30%) — conservative: AI also evaluates relevance and quality
+  // Keywords & skills (30%)
   const sc = skillCount(cv)
-  const keywords = sc >= 15 ? 84 : sc >= 10 ? 70 : sc >= 6 ? 55 : sc >= 3 ? 40 : 20
+  const keywords = sc >= 15 ? 92 : sc >= 10 ? 80 : sc >= 6 ? 65 : sc >= 3 ? 48 : 25
 
-  // Format & parseability (25%) — Harvard is clean but AI also checks content quality
-  const format = 72
+  // Format & parseability (25%) — Harvard template is always clean single-column
+  const format = 90
 
   // Work experience structure (20%)
   const roles = cv.experiencia
-  let expScore = 83
+  let expScore = 90
   if (roles.length === 0) {
     expScore = 20
   } else {
@@ -62,15 +62,15 @@ export function calcAtsScore(cv: CVData): SimpleAtsScore {
       r.bullets.some(b => b.trim().length > 0)
     ).length
     const ratio = complete / roles.length
-    expScore = Math.round(45 + ratio * 38)
+    expScore = Math.round(50 + ratio * 45)
   }
 
   // Education & certifications (10%)
   const edu = cv.educacion
-  let eduScore = 35
+  let eduScore = 40
   if (edu.length > 0) {
     const hasComplete = edu.some(e => e.titulo.trim() && e.institucion.trim())
-    eduScore = hasComplete ? 78 : 55
+    eduScore = hasComplete ? 85 : 60
   }
 
   // Contact information (10%) — +25 per element present
@@ -84,7 +84,7 @@ export function calcAtsScore(cv: CVData): SimpleAtsScore {
 
   // Length & file optimization (5%)
   const pages = estimatePages(cv)
-  const lengthScore = pages <= 2 ? 88 : pages === 3 ? 70 : 42
+  const lengthScore = pages <= 2 ? 92 : pages === 3 ? 75 : 45
 
   // Weighted average (same weights as the real scorer)
   const score = Math.round(
