@@ -212,7 +212,7 @@ export default function EditorPage() {
   const [loadError, setLoadError] = useState('')
   const [changesApplied, setChangesApplied] = useState<number | null>(null)
   const [baselineScore, setBaselineScore] = useState<number | null>(null)
-  const [gainVsBaseline, setGainVsBaseline] = useState<number | null>(null)
+  const [initialSimScore, setInitialSimScore] = useState<number | null>(null)
 
 
   useEffect(() => {
@@ -305,11 +305,11 @@ export default function EditorPage() {
       const loadedCv = data as CVData
       const newScore = calcAtsScore(loadedCv)
       prevScoreRef.current = newScore.score
+      setInitialSimScore(newScore.score)
       setCv(loadedCv)
       setCvLoaded(true)
       setDetectedCvText(null)
       sessionStorage.removeItem('atsCvText')
-      if (baselineScore !== null) setGainVsBaseline(newScore.score - baselineScore)
     } catch (err) {
       const isAbort = err instanceof Error && (err.name === 'AbortError' || err.message.includes('aborted'))
       setLoadError(isAbort
@@ -347,7 +347,6 @@ export default function EditorPage() {
       setChangesApplied(bulletChanges)
       setCv(data)
       setDetectedResult(null)
-      if (baselineScore !== null) setGainVsBaseline(newScore.score - baselineScore)
     } catch (err) {
       const isAbort = err instanceof Error && (err.name === 'AbortError' || err.message.includes('aborted'))
       setLoadError(isAbort
@@ -501,11 +500,21 @@ export default function EditorPage() {
 
   const liveAtsScore = useMemo(() => calcAtsScore(cv), [cv])
 
-  // Before CV is loaded: show the real analysis score. After: show live simulator score.
-  const scoreToShow = !cvLoaded && baselineScore != null ? baselineScore : liveAtsScore.score
-  const levelToShow: 'high' | 'mid' | 'low' = !cvLoaded && baselineScore != null
-    ? (baselineScore >= 75 ? 'high' : baselineScore >= 50 ? 'mid' : 'low')
-    : liveAtsScore.level
+  // Simulator delta: how much the simulator has changed since the CV was loaded
+  const simDelta = cvLoaded && initialSimScore != null ? liveAtsScore.score - initialSimScore : null
+
+  // Score shown in chip:
+  // - Before load: real Gemma4 analysis score (or raw simulator if no analysis)
+  // - After load with baseline: anchor to real score + simulator delta (never shows inflated values)
+  // - After load without baseline: raw simulator
+  const scoreToShow = (() => {
+    if (!cvLoaded) return baselineScore ?? liveAtsScore.score
+    if (baselineScore != null && initialSimScore != null) {
+      return Math.min(99, Math.max(0, baselineScore + (liveAtsScore.score - initialSimScore)))
+    }
+    return liveAtsScore.score
+  })()
+  const levelToShow: 'high' | 'mid' | 'low' = scoreToShow >= 75 ? 'high' : scoreToShow >= 50 ? 'mid' : 'low'
 
   const prevScoreRef = useRef(liveAtsScore.score)
   const [scoreDelta, setScoreDelta] = useState(0)
@@ -521,9 +530,9 @@ export default function EditorPage() {
     }
   }, [liveAtsScore.score])
 
-  // Transient delta (from editing) takes priority; then persistent delta vs analysis baseline
+  // Transient delta (from editing) takes priority; then persistent simulator delta since load
   const deltaToShow = cvLoaded
-    ? (justChanged && scoreDelta !== 0 ? scoreDelta : (gainVsBaseline != null && gainVsBaseline !== 0 ? gainVsBaseline : null))
+    ? (justChanged && scoreDelta !== 0 ? scoreDelta : (simDelta != null && simDelta !== 0 ? simDelta : null))
     : null
 
   return (
@@ -889,7 +898,14 @@ export default function EditorPage() {
               </div>
               <Field label={LABELS[lang].email} value={cv.personalInfo.email} onChange={v => setP('email', v)} placeholder="juan@email.com" />
               <Field label={LABELS[lang].telefono} value={cv.personalInfo.telefono} onChange={v => setP('telefono', v)} placeholder="+34 600 000 000" />
-              <Field label={LABELS[lang].linkedin} value={cv.personalInfo.linkedin} onChange={v => setP('linkedin', v)} placeholder="linkedin.com/in/juan" />
+              <div>
+                <Field label={LABELS[lang].linkedin} value={cv.personalInfo.linkedin} onChange={v => setP('linkedin', v)} placeholder="linkedin.com/in/juan" />
+                {cvLoaded && !cv.personalInfo.linkedin.trim() && (
+                  <p className="font-sans text-xs mt-1" style={{ color: '#d97706' }}>
+                    El campo LinkedIn está vacío. Rellénalo antes de exportar.
+                  </p>
+                )}
+              </div>
               <Field label={LABELS[lang].ubicacion} value={cv.personalInfo.ubicacion} onChange={v => setP('ubicacion', v)} placeholder="Madrid, España" />
               <div className="col-span-2">
                 <Field label={LABELS[lang].website} value={cv.personalInfo.website} onChange={v => setP('website', v)} placeholder="juangarcia.dev" />
@@ -1060,7 +1076,14 @@ export default function EditorPage() {
                 <Field label={LABELS[lang].proyectoNombre} value={proj.nombre} onChange={v => updateProyecto(proj.id, { nombre: v })} placeholder="Open Toponym" />
                 <Field label={LABELS[lang].proyectoDesc} value={proj.descripcion} onChange={v => updateProyecto(proj.id, { descripcion: v })}
                   placeholder="Brief description of what you built and the impact..." multiline rows={3} />
-                <Field label={LABELS[lang].proyectoUrl} value={proj.url} onChange={v => updateProyecto(proj.id, { url: v })} placeholder="github.com/user/project" />
+                <div>
+                  <Field label={LABELS[lang].proyectoUrl} value={proj.url} onChange={v => updateProyecto(proj.id, { url: v })} placeholder="github.com/user/project" />
+                  {cvLoaded && !proj.url.trim() && proj.nombre.trim() && (
+                    <p className="font-sans text-xs mt-1" style={{ color: '#d97706' }}>
+                      Revisa y rellena las URLs de tus proyectos.
+                    </p>
+                  )}
+                </div>
               </div>
             ))}
             <AddButton label={LABELS[lang].addProyecto} onClick={addProyecto} />

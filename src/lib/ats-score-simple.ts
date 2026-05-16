@@ -44,6 +44,7 @@ function estimatePages(cv: CVData): number {
 
 export function calcAtsScore(cv: CVData): SimpleAtsScore {
   // Keywords & skills (30%)
+  // Keywords & skills (30%)
   const sc = skillCount(cv)
   const keywords = sc >= 15 ? 92 : sc >= 10 ? 80 : sc >= 6 ? 65 : sc >= 3 ? 48 : 25
 
