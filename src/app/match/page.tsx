@@ -7,6 +7,7 @@ import { getLang, type Lang } from '@/components/LanguageSelector'
 import Header from '@/components/Header'
 
 type State = 'idle' | 'analyzing' | 'error'
+type BatchState = 'idle' | 'loading' | 'done'
 
 interface ManfredOffer {
   id: number
@@ -140,6 +141,12 @@ const LABELS = {
     noStorage: 'Tu CV no se almacena',
     fastAnalysis: 'Análisis en segundos',
     checkingSkills: 'Revisando tu encaje con las ofertas de Manfred...',
+    batchMatchCta: 'Ver mi match con las mejores ofertas de Manfred',
+    batchMatchSubtext: 'Analizaremos tu encaje con las 5 ofertas más afines a tu perfil',
+    batchMatchProgress: (done: number, total: number) => `Analizando ${done} de ${total} ofertas...`,
+    batchMatchDone: (n: number) => `${n} ofertas analizadas · ordenadas por compatibilidad`,
+    batchMatchViewFull: 'Ver análisis completo',
+    batchMatchNew: 'Nuevo análisis',
     locationWarningTitle: 'Residencia en España requerida',
     locationWarningBody: (country: string) => `Hemos detectado que tu CV está vinculado a ${country}. Todas las ofertas de Manfred son en España y requieren residencia legal para formalizar contrato. Lamentablemente no podremos tener en cuenta tu candidatura.`,
     errNoJd: 'Pega el texto, una URL o sube la oferta de trabajo para continuar.',
@@ -176,6 +183,12 @@ const LABELS = {
     noStorage: 'Your CV is not stored',
     fastAnalysis: 'Analysis in seconds',
     checkingSkills: 'Checking your fit with Manfred offers...',
+    batchMatchCta: 'See my match with the best Manfred offers',
+    batchMatchSubtext: 'We will analyse your fit with the 5 offers most aligned to your profile',
+    batchMatchProgress: (done: number, total: number) => `Analysing ${done} of ${total} offers...`,
+    batchMatchDone: (n: number) => `${n} offers analysed · sorted by compatibility`,
+    batchMatchViewFull: 'See full analysis',
+    batchMatchNew: 'New analysis',
     locationWarningTitle: 'Spanish residency required',
     locationWarningBody: (country: string) => `We detected your CV is linked to ${country}. All Manfred offers are based in Spain and require legal residency to sign a contract. Unfortunately we won't be able to consider your application.`,
     errNoJd: 'Paste the text, a URL or upload the job offer to continue.',
@@ -233,6 +246,12 @@ export default function MatchPage() {
   const [manfredOffers, setManfredOffers] = useState<ManfredOffer[]>([])
   const [loadingOffers, setLoadingOffers] = useState(true)
   const [skillsDetectadas, setSkillsDetectadas] = useState<string[]>([])
+
+  // Batch match
+  const [batchState, setBatchState] = useState<BatchState>('idle')
+  const [batchProgress, setBatchProgress] = useState(0)
+  const [batchTotal, setBatchTotal] = useState(0)
+  const [batchResults, setBatchResults] = useState<Array<{ offer: ManfredOffer; result: MatchResult | null }>>([])
 
   const jdIsUrl = /^https?:\/\/\S+$/.test(jdText.trim())
 
@@ -406,6 +425,56 @@ export default function MatchPage() {
     setJdText(`https://www.getmanfred.com/es/ofertas-empleo/${offer.id}/${offer.slug}`)
     setJdFile(null)
     window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const handleBatchMatch = async () => {
+    const cvText = sessionStorage.getItem('atsCvText') || localStorage.getItem('atsCvText') || ''
+    if (!cvText && !cvFile) return
+
+    const hasProfile = skillsDetectadas.length > 0 || cvRole.length > 0
+    const sorted = hasProfile
+      ? [...manfredOffers].sort((a, b) => preScoreOffer(b, skillsDetectadas, cvRole) - preScoreOffer(a, skillsDetectadas, cvRole))
+      : manfredOffers
+    const top5 = sorted.slice(0, 5)
+
+    setBatchState('loading')
+    setBatchProgress(0)
+    setBatchTotal(top5.length)
+    setBatchResults([])
+
+    const results: Array<{ offer: ManfredOffer; result: MatchResult | null }> = []
+
+    for (const offer of top5) {
+      try {
+        const offerRes = await fetch(`/api/manfred-offer-text?id=${offer.id}&slug=${offer.slug}`)
+        const offerData = offerRes.ok ? await offerRes.json() as { text: string } : { text: '' }
+        const jdOfferText = offerData.text || ''
+
+        const formData = new FormData()
+        if (cvText) {
+          formData.append('cvText', cvText)
+        } else if (cvFile) {
+          formData.append('cvFile', cvFile)
+        }
+        formData.append('jdText', jdOfferText)
+        formData.append('lang', lang)
+
+        const matchRes = await fetch('/api/match', { method: 'POST', body: formData })
+        if (matchRes.ok) {
+          const matchData = await matchRes.json() as MatchResult
+          results.push({ offer, result: matchData })
+        } else {
+          results.push({ offer, result: null })
+        }
+      } catch {
+        results.push({ offer, result: null })
+      }
+      setBatchProgress(results.length)
+    }
+
+    results.sort((a, b) => (b.result?.matchScore ?? 0) - (a.result?.matchScore ?? 0))
+    setBatchResults(results)
+    setBatchState('done')
   }
 
   const isAnalyzing = state === 'analyzing'
@@ -674,6 +743,91 @@ export default function MatchPage() {
           >
             {L.submit}
           </button>
+        )}
+
+        {/* Batch match */}
+        {!isAnalyzing && (hasCachedCv || !!cvFile) && (
+          <div>
+            {batchState === 'idle' && (
+              <>
+                <button
+                  onClick={handleBatchMatch}
+                  className="w-full py-3 rounded-xl font-sans font-[800] text-sm uppercase tracking-wider transition-opacity hover:opacity-80"
+                  style={{ backgroundColor: '#092c64', color: '#01FFC6' }}
+                >
+                  {L.batchMatchCta}
+                </button>
+                <p className="font-sans text-xs text-gray-400 text-center mt-2">{L.batchMatchSubtext}</p>
+              </>
+            )}
+            {batchState === 'loading' && (
+              <>
+                <div className="flex items-center gap-3 py-2 mb-3">
+                  <svg className="animate-spin h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" style={{ color: '#0DA1A4' }}>
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                  </svg>
+                  <p className="font-sans text-sm font-[600]" style={{ color: '#0DA1A4' }}>{L.batchMatchProgress(batchProgress, batchTotal)}</p>
+                </div>
+                <div className="w-full h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{ width: `${batchTotal > 0 ? (batchProgress / batchTotal) * 100 : 0}%`, backgroundColor: '#0DA1A4' }}
+                  />
+                </div>
+              </>
+            )}
+            {batchState === 'done' && batchResults.length > 0 && (
+              <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="font-sans font-[700] text-xs uppercase tracking-widest text-gray-400">
+                    {L.batchMatchDone(batchResults.filter(r => r.result !== null).length)}
+                  </p>
+                  <button
+                    onClick={() => { setBatchState('idle'); setBatchResults([]) }}
+                    className="font-sans text-xs text-gray-400 hover:text-teal underline underline-offset-2 transition-colors duration-200"
+                  >
+                    {L.batchMatchNew}
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {batchResults.map(({ offer, result }) => {
+                    if (!result) return null
+                    const ms = matchBadgeStyle(result.matchScore)
+                    const offerUrl = `https://www.getmanfred.com/es/ofertas-empleo/${offer.id}/${offer.slug}`
+                    return (
+                      <div key={offer.id} className="rounded-xl border p-3" style={{ backgroundColor: '#fafafa', borderColor: result.matchScore >= 80 ? '#86efac' : '#ede9e3' }}>
+                        <div className="flex items-center gap-3">
+                          <OfferLogo name={offer.company.name} logoUrl={offer.company.logoUrl} />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="font-sans font-[700] text-sm text-navy leading-snug">{offer.position}</p>
+                              <span className="font-sans font-[800] text-[11px] px-2 py-0.5 rounded-full"
+                                style={{ backgroundColor: ms.bg, color: ms.color, border: `1px solid ${ms.border}` }}>
+                                {result.matchScore}%
+                              </span>
+                            </div>
+                            <p className="font-sans text-xs text-gray-400 mt-0.5">{offer.company.name}</p>
+                          </div>
+                          <button
+                            onClick={() => {
+                              sessionStorage.setItem('matchResult', JSON.stringify(result))
+                              sessionStorage.setItem('matchJdUrl', offerUrl)
+                              router.push('/match/results')
+                            }}
+                            className="flex-shrink-0 font-sans font-[700] text-xs px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80 whitespace-nowrap"
+                            style={{ backgroundColor: '#092c64', color: '#ffffff' }}
+                          >
+                            {L.batchMatchViewFull}
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
         {/* Manfred offers */}
