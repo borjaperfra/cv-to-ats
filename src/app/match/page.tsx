@@ -745,6 +745,91 @@ export default function MatchPage() {
           </button>
         )}
 
+        {/* Batch match */}
+        {!isAnalyzing && (hasCachedCv || !!cvFile) && (
+          <div>
+            {batchState === 'idle' && (
+              <>
+                <button
+                  onClick={handleBatchMatch}
+                  className="w-full py-3 rounded-xl font-sans font-[800] text-sm uppercase tracking-wider transition-opacity hover:opacity-80"
+                  style={{ backgroundColor: '#092c64', color: '#01FFC6' }}
+                >
+                  {L.batchMatchCta}
+                </button>
+                <p className="font-sans text-xs text-gray-400 text-center mt-2">{L.batchMatchSubtext}</p>
+              </>
+            )}
+            {batchState === 'loading' && (
+              <>
+                <div className="flex items-center gap-3 py-2 mb-3">
+                  <svg className="animate-spin h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" style={{ color: '#0DA1A4' }}>
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                  </svg>
+                  <p className="font-sans text-sm font-[600]" style={{ color: '#0DA1A4' }}>{L.batchMatchProgress(batchProgress, batchTotal)}</p>
+                </div>
+                <div className="w-full h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{ width: `${batchTotal > 0 ? (batchProgress / batchTotal) * 100 : 0}%`, backgroundColor: '#0DA1A4' }}
+                  />
+                </div>
+              </>
+            )}
+            {batchState === 'done' && batchResults.length > 0 && (
+              <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="font-sans font-[700] text-xs uppercase tracking-widest text-gray-400">
+                    {L.batchMatchDone(batchResults.filter(r => r.result !== null).length)}
+                  </p>
+                  <button
+                    onClick={() => { setBatchState('idle'); setBatchResults([]) }}
+                    className="font-sans text-xs text-gray-400 hover:text-teal underline underline-offset-2 transition-colors duration-200"
+                  >
+                    {L.batchMatchNew}
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {batchResults.map(({ offer, result }) => {
+                    if (!result) return null
+                    const ms = matchBadgeStyle(result.matchScore)
+                    const offerUrl = `https://www.getmanfred.com/es/ofertas-empleo/${offer.id}/${offer.slug}`
+                    return (
+                      <div key={offer.id} className="rounded-xl border p-3" style={{ backgroundColor: '#fafafa', borderColor: result.matchScore >= 80 ? '#86efac' : '#ede9e3' }}>
+                        <div className="flex items-center gap-3">
+                          <OfferLogo name={offer.company.name} logoUrl={offer.company.logoUrl} />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="font-sans font-[700] text-sm text-navy leading-snug">{offer.position}</p>
+                              <span className="font-sans font-[800] text-[11px] px-2 py-0.5 rounded-full"
+                                style={{ backgroundColor: ms.bg, color: ms.color, border: `1px solid ${ms.border}` }}>
+                                {result.matchScore}%
+                              </span>
+                            </div>
+                            <p className="font-sans text-xs text-gray-400 mt-0.5">{offer.company.name}</p>
+                          </div>
+                          <button
+                            onClick={() => {
+                              sessionStorage.setItem('matchResult', JSON.stringify(result))
+                              sessionStorage.setItem('matchJdUrl', offerUrl)
+                              router.push('/match/results')
+                            }}
+                            className="flex-shrink-0 font-sans font-[700] text-xs px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80 whitespace-nowrap"
+                            style={{ backgroundColor: '#092c64', color: '#ffffff' }}
+                          >
+                            {L.batchMatchViewFull}
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Manfred offers */}
         {(loadingOffers || manfredOffers.length > 0) && (() => {
           const hasProfile = skillsDetectadas.length > 0 || cvRole.length > 0
@@ -828,91 +913,6 @@ export default function MatchPage() {
                       Ver todas en getmanfred.com →
                     </a>
                   </div>
-
-                  {/* Batch match */}
-                  {(hasCachedCv || !!cvFile) && (
-                    <div className="mt-4 pt-4 border-t border-gray-100">
-                      {batchState === 'idle' && (
-                        <>
-                          <button
-                            onClick={handleBatchMatch}
-                            className="w-full py-3 rounded-xl font-sans font-[800] text-sm uppercase tracking-wider transition-opacity hover:opacity-80"
-                            style={{ backgroundColor: '#092c64', color: '#01FFC6' }}
-                          >
-                            {L.batchMatchCta}
-                          </button>
-                          <p className="font-sans text-xs text-gray-400 text-center mt-2">{L.batchMatchSubtext}</p>
-                        </>
-                      )}
-                      {batchState === 'loading' && (
-                        <>
-                          <div className="flex items-center gap-3 py-2 mb-3">
-                            <svg className="animate-spin h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" style={{ color: '#0DA1A4' }}>
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                            </svg>
-                            <p className="font-sans text-sm font-[600]" style={{ color: '#0DA1A4' }}>{L.batchMatchProgress(batchProgress, batchTotal)}</p>
-                          </div>
-                          <div className="w-full h-1.5 rounded-full bg-gray-100 overflow-hidden">
-                            <div
-                              className="h-full rounded-full transition-all duration-500"
-                              style={{ width: `${batchTotal > 0 ? (batchProgress / batchTotal) * 100 : 0}%`, backgroundColor: '#0DA1A4' }}
-                            />
-                          </div>
-                        </>
-                      )}
-                      {batchState === 'done' && batchResults.length > 0 && (
-                        <>
-                          <div className="flex items-center justify-between mb-3">
-                            <p className="font-sans font-[700] text-xs uppercase tracking-widest text-gray-400">
-                              {L.batchMatchDone(batchResults.filter(r => r.result !== null).length)}
-                            </p>
-                            <button
-                              onClick={() => { setBatchState('idle'); setBatchResults([]) }}
-                              className="font-sans text-xs text-gray-400 hover:text-teal underline underline-offset-2 transition-colors duration-200"
-                            >
-                              {L.batchMatchNew}
-                            </button>
-                          </div>
-                          <div className="space-y-2">
-                            {batchResults.map(({ offer, result }) => {
-                              if (!result) return null
-                              const ms = matchBadgeStyle(result.matchScore)
-                              const offerUrl = `https://www.getmanfred.com/es/ofertas-empleo/${offer.id}/${offer.slug}`
-                              return (
-                                <div key={offer.id} className="rounded-xl border p-3" style={{ backgroundColor: '#fafafa', borderColor: result.matchScore >= 80 ? '#86efac' : '#ede9e3' }}>
-                                  <div className="flex items-center gap-3">
-                                    <OfferLogo name={offer.company.name} logoUrl={offer.company.logoUrl} />
-                                    <div className="flex-1 min-w-0">
-                                      <div className="flex items-center gap-2 flex-wrap">
-                                        <p className="font-sans font-[700] text-sm text-navy leading-snug">{offer.position}</p>
-                                        <span className="font-sans font-[800] text-[11px] px-2 py-0.5 rounded-full"
-                                          style={{ backgroundColor: ms.bg, color: ms.color, border: `1px solid ${ms.border}` }}>
-                                          {result.matchScore}%
-                                        </span>
-                                      </div>
-                                      <p className="font-sans text-xs text-gray-400 mt-0.5">{offer.company.name}</p>
-                                    </div>
-                                    <button
-                                      onClick={() => {
-                                        sessionStorage.setItem('matchResult', JSON.stringify(result))
-                                        sessionStorage.setItem('matchJdUrl', offerUrl)
-                                        router.push('/match/results')
-                                      }}
-                                      className="flex-shrink-0 font-sans font-[700] text-xs px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80 whitespace-nowrap"
-                                      style={{ backgroundColor: '#092c64', color: '#ffffff' }}
-                                    >
-                                      {L.batchMatchViewFull}
-                                    </button>
-                                  </div>
-                                </div>
-                              )
-                            })}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  )}
                 </>
               )}
             </div>
